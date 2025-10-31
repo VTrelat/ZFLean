@@ -2318,7 +2318,8 @@ theorem fprod_is_func {A B A' B' φ ψ : ZFSet} (hφ : A.IsFunc A' φ) (hψ : B.
   and_intros
   · intro z hz
     simp only [fprod, mem_prod, mem_lambda, existsAndEq, and_true] at hz
-    obtain ⟨a', b', a, b, rfl, ⟨aA, bB⟩, ⟨a'A', b'B'⟩, eq⟩ := hz
+    obtain ⟨x, rfl, ⟨a, aA, b, bB, rfl⟩, a', ha', b', hb', eq⟩ := hz
+    -- obtain ⟨a', b', a, b, rfl, ⟨aA, bB⟩, ⟨a'A', b'B'⟩, eq⟩ := hz
     rw [dite_cond_eq_true (eq_true (by rw [pair_mem_prod]; exact ⟨aA, bB⟩)), pair_inj] at eq
     obtain ⟨rfl, rfl⟩ := eq
     let φa : ZFSet := @ᶻφ ⟨a, by rwa [is_func_dom_eq hφ]⟩
@@ -2328,8 +2329,10 @@ theorem fprod_is_func {A B A' B' φ ψ : ZFSet} (hφ : A.IsFunc A' φ) (hψ : B.
     and_intros
     · exact aA
     · exact bB
-    · apply fapply_mem_range
-    · apply fapply_mem_range
+    · simp only [π₁_pair, π₂_pair] at ha' hb'
+      use φa, ha', ψb, hb'
+      rw [dite_cond_eq_true (eq_true (by rw [pair_mem_prod]; exact ⟨aA, bB⟩))]
+
   · intro z hz
     rw [mem_prod] at hz
     obtain ⟨a, ha, b, hb, rfl⟩ := hz
