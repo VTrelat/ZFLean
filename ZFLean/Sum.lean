@@ -1,6 +1,7 @@
 import ZFLean.Basic
 import ZFLean.Booleans
 import ZFLean.Integers
+import ZFLean.Functions
 
 namespace ZFSet
 
@@ -246,6 +247,25 @@ end Option_to_ZFOption
 
 abbrev toZFSet (T : ZFSet) :
   ZFSet := (ZFSet.prod { ZFBool.false.val } {∅}) ∪ (ZFSet.prod { ZFBool.true.val } T)
+
+open Classical in
+noncomputable def flift {A B : ZFSet} (f : ZFSet)
+  (hf : IsFunc A B f := by zfun) :
+    {f' : ZFSet // IsFunc (Option.toZFSet A) (Option.toZFSet B) f'} :=
+  let f' : ZFSet :=
+    λᶻ: Option.toZFSet A → Option.toZFSet B
+      |          x       ↦ if hx : x ∈ Option.toZFSet A then
+                              if isSome : ∃ y, ⟨x, hx⟩ = some y then
+                                let ⟨y, hy⟩ := Classical.choose isSome
+                                some (S := B) (@ᶻf ⟨y, by rwa [ZFSet.is_func_dom_eq]⟩) |>.val
+                              else none (S := B).val
+                            else ∅
+  have hf' : IsFunc (Option.toZFSet A) (Option.toZFSet B) f' := by
+    apply ZFSet.lambda_isFunc
+    intro x hx
+    rw [dite_cond_eq_true (eq_true hx)]
+    split_ifs with isSome <;> apply SetLike.coe_mem
+  ⟨f', hf'⟩
 
 end Option
 
