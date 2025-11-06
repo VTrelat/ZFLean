@@ -559,6 +559,36 @@ theorem IsPermutation.composition_of_permutations {σ τ : ZFSet} {E : ZFSet}
   IsInjective.composition_of_injective hσ.2.1 hτ.2.1,
   IsSurjective.composition_of_surjective hσ.2.2 hτ.2.2⟩
 
+@[simp]
+theorem composition_assoc {A B C D : ZFSet} {f : ZFSet} {g : ZFSet} {h : ZFSet} :
+    (h.composition (g.composition f A B C) A C D) =
+    ((h.composition g B C D).composition f A B D) := by
+  ext1 z
+  constructor <;> intro hz
+  · rw [mem_composition] at hz ⊢
+    obtain ⟨x, w, y, rfl, hx, hy, hw, hxw, hwy⟩ := hz
+    simp only [mem_composition, pair_inj, existsAndEq,
+      and_true, exists_and_left, exists_eq_left'] at hxw
+    obtain ⟨-, -, u, hu, hxu, huw⟩ := hxw
+    use x, u, y
+    refine ⟨rfl, hx, hy, hu, hxu, ?_⟩
+    rw [mem_composition]
+    use u, w, y
+  · rw [mem_composition] at hz ⊢
+    obtain ⟨x, u, y, rfl, hx, hy, hu, hxu, huy⟩ := hz
+    simp only [mem_composition, pair_inj, existsAndEq,
+      and_true, exists_and_left, exists_eq_left'] at huy
+    obtain ⟨-, -, w, hw, huw, hwy⟩ := huy
+    use x, w, y
+    refine ⟨rfl, hx, hy, hw, ?_, hwy⟩
+    rw [mem_composition]
+    use x, u, w
+
+@[simp]
+theorem fcomp_assoc {A B C D : ZFSet} {f : ZFSet} {g : ZFSet} {h : ZFSet}
+  (hf : IsFunc A B f) (hg : IsFunc B C g) (hh : IsFunc C D h) :
+    (h ∘ᶻ (g ∘ᶻ f)) = (h ∘ᶻ g ∘ᶻ f) := composition_assoc
+
 open Classical in
 noncomputable def fapply (f : ZFSet) {A B : ZFSet} (hf : f.IsPFunc A B := by zpfun) :
   {x // x ∈ f.Dom} → {x // x ∈ B} := fun ⟨x, x_dom⟩ ↦
@@ -892,6 +922,25 @@ theorem lambda_eta {A B : ZFSet} {f : ZFSet} (hf : A.IsFunc B f) :
     rw [dite_cond_eq_true (eq_true xA)]
     apply fapply.def
 
+theorem is_func_ext_iff {A B : ZFSet} {f g : ZFSet} (hf : IsFunc A B f) (hg : IsFunc A B g) :
+    f = g ↔ (∀ x,
+      (hx : x ∈ A) →
+      @ᶻf ⟨x, by rwa [is_func_dom_eq]⟩ = @ᶻg ⟨x, by rwa [is_func_dom_eq]⟩)
+where
+  mp := by
+    rintro rfl
+    exact fun _ _ ↦ rfl
+  mpr := by
+    intro h
+    rw [
+      lambda_eta hf,
+      lambda_eta hg,
+      lambda_ext_iff
+        (fun h ↦ by rw [dite_cond_eq_true (eq_true h)]; apply Subtype.property)]
+    intro z hz
+    simp_rw [dite_cond_eq_true (eq_true hz), ←Subtype.ext_iff]
+    exact h _ hz
+
 theorem lambda_subset {A B : ZFSet} {exp : ZFSet → ZFSet} : lambda A B exp ⊆ A.prod B := by
   intro z hz
   rw [lambda, mem_sep] at hz
@@ -1184,6 +1233,37 @@ theorem Image_of_composition_self_inv_of_bijective {f A B : ZFSet} {f_is_func : 
     enter [1,1]
     rw [inv_involutive]
   exact this
+
+theorem fapply_inv_of_bijective {A B : ZFSet} {f : ZFSet} {hf : IsFunc A B f}
+  (f_bij : f.IsBijective hf) {x y : ZFSet} (hx : x ∈ A) (hy : y ∈ B) :
+    @ᶻf ⟨x, by rwa [is_func_dom_eq]⟩ = y → @ᶻf⁻¹ ⟨y, by rwa [is_func_dom_eq]⟩ = x := by
+  intro rfl
+  conv_lhs =>
+    rw [←fapply_composition (inv_is_func_of_bijective f_bij) hf hx,
+      fapply_eq_Image_singleton
+        (IsFunc_of_composition_IsFunc (inv_is_func_of_bijective f_bij) hf) hx]
+    conv =>
+      enter [1,1]
+      rw [←fcomp.eq_def _ _ (inv_is_func_of_bijective f_bij) hf,
+        composition_self_inv_of_bijective f_bij]
+    rw [←fapply_eq_Image_singleton Id.IsFunc hx, fapply_Id hx]
+
+theorem fapply_inv_of_bijective_iff {A B : ZFSet} {f : ZFSet} {hf : IsFunc A B f}
+  (f_bij : f.IsBijective hf) {x y : ZFSet} (hx : x ∈ A) (hy : y ∈ B) :
+    @ᶻf ⟨x, by rwa [is_func_dom_eq]⟩ = y ↔ @ᶻf⁻¹ ⟨y, by rwa [is_func_dom_eq]⟩ = x
+  where
+    mp := fapply_inv_of_bijective f_bij hx hy
+    mpr := by
+      intro h
+      have := fapply_inv_of_bijective (inv_bijective_of_bijective f_bij) hy hx h
+      conv_lhs at this =>
+        rw [fapply_eq_Image_singleton
+          (inv_is_func_of_bijective (inv_bijective_of_bijective f_bij)) hx]
+        conv =>
+          enter [1,1]
+          rw [inv_involutive]
+        rw [←fapply_eq_Image_singleton hf hx]
+      exact this
 
 end Functions
 
