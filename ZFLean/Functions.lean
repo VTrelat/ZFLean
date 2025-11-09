@@ -514,6 +514,23 @@ abbrev fcomp (g f : ZFSet) {A B C : ZFSet}
     composition g f A B C
 infixl:90 " ∘ᶻ " => fcomp
 
+@[simp] theorem pair_mem_composition (g f : ZFSet) {A B C x y : ZFSet}
+  (hg : IsFunc B C g) (hf : IsFunc A B f) :
+    x.pair y ∈ (g ∘ᶻ f) ↔ ∃ w ∈ B, x.pair w ∈ f ∧ w.pair y ∈ g where
+  mp := by
+    intro hxy
+    simp only [mem_composition, pair_inj, ↓existsAndEq, and_true, exists_and_left,
+      exists_eq_left'] at hxy
+    obtain ⟨a, ha, b, hb, fxb, gby⟩ := hxy
+    use b, hb
+  mpr := by
+    intro ⟨w, hw, fxw, gwy⟩
+    simp only [mem_composition, pair_inj, ↓existsAndEq, and_true, exists_and_left, exists_eq_left']
+    and_intros
+    · exact hf.1 fxw |> pair_mem_prod.mp |>.1
+    · exact hg.1 gwy |> pair_mem_prod.mp |>.2
+    · use w
+
 theorem IsInjective.composition_of_injective {f g : ZFSet} {A B C : ZFSet}
   {hf : A.IsFunc B f} {hg : B.IsFunc C g}
   (finj : f.IsInjective) (ginj : g.IsInjective) :
@@ -1099,6 +1116,140 @@ theorem composition_inv_self_of_bijective {f A B : ZFSet} {f_is_func : A.IsFunc 
     enter [1,1]
     rw [←ginv_eq]
   exact composition_self_inv_of_bijective <| inv_bijective_of_bijective hf
+
+theorem inv_fcomp_iff {A B C : ZFSet} {f g : ZFSet} {hf : IsFunc A B f}
+  (fbij : f.IsBijective hf) {hg : IsFunc B C g} (gbij : g.IsBijective hg) :
+    (g ∘ᶻ f)⁻¹ = (f⁻¹ ∘ᶻ g⁻¹) := by
+  ext1 z
+  constructor <;> intro hz
+  · generalize_proofs g_f_rel at hz
+    obtain ⟨c, hc, a, ha, rfl⟩ := subset_prod_inv g_f_rel hz |> mem_prod.mp
+    rw [mem_inv, pair_mem_composition] at hz
+    obtain ⟨b, hb, fab, gbc⟩ := hz
+    rw [←mem_inv (is_rel_of_is_func ‹_›)] at fab gbc
+    rw [pair_mem_composition]
+    use b, hb, gbc, fab
+  · rw [mem_composition] at hz
+    obtain ⟨x, w, y, rfl, hx, hy, hw, gwx, fyw⟩ := hz
+    rw [mem_inv (is_rel_of_is_func ‹_›)] at gwx fyw
+    rw [mem_inv, pair_mem_composition]
+    use w, hw, fyw, gwx
+
+theorem fcomp_bij_fcomp_inv_right {A B C : ZFSet} {f g h : ZFSet} {hf : IsFunc A B f}
+  (hbij : f.IsBijective hf) (hg : IsFunc B C g) (hh : IsFunc A C h) :
+    (g ∘ᶻ f) = h ↔ g = (h ∘ᶻ f⁻¹) where
+  mp := by
+    intro eq
+    ext1 z
+    constructor <;> intro hz
+    · obtain ⟨x, hx, y, hy, rfl⟩ := hg.1 hz |> mem_prod.mp
+      obtain ⟨w, hw, fwx⟩ := hbij.2 x hx
+      rw [pair_mem_composition]
+      use w, hw
+      rw [mem_inv]
+      and_intros
+      · exact fwx
+      · rw [←eq, pair_mem_composition]
+        use x, hx, fwx, hz
+    · rw [mem_composition] at hz
+      obtain ⟨x, w, y, rfl, hx, hy, hw, fwx, hwy⟩ := hz
+      rw [←eq, pair_mem_composition] at hwy
+      obtain ⟨x', hx', fwx', gx'y⟩ := hwy
+      rw [mem_inv] at fwx
+      obtain rfl := hf.2 w hw |>.unique fwx fwx'
+      exact gx'y
+  mpr := by
+    intro eq
+    ext1 z
+    constructor <;> intro hz
+    · rw [mem_composition] at hz
+      obtain ⟨x, w, y, rfl, hx, hy, hw, fwx, gwy⟩ := hz
+      rw [eq, pair_mem_composition] at gwy
+      obtain ⟨w', hw', fww', hwy⟩ := gwy
+      rw [mem_inv] at fww'
+      obtain rfl := hbij.1 _ _ _ hx hw' hw fwx fww'
+      exact hwy
+    · obtain ⟨x, hx, y, hy, rfl⟩ := hh.1 hz |> mem_prod.mp
+      obtain ⟨w, hw, fxw⟩ := ZFSet.inv_bijective_of_bijective hbij |>.2 x hx
+      rw [mem_inv] at fxw
+      rw [pair_mem_composition]
+      use w, hw, fxw
+      rw [eq, pair_mem_composition]
+      use x, hx, (by rwa [mem_inv]), hz
+
+theorem fcomp_bij_fcomp_inv_left {A B C : ZFSet} {f g h : ZFSet} {hf : IsFunc B C f}
+  (hbij : f.IsBijective hf) (hg : IsFunc A B g) (hh : IsFunc A C h) :
+    (f ∘ᶻ g) = h ↔ g = (f⁻¹ ∘ᶻ h) where
+  mp := by
+    intro eq
+    ext1 z
+    constructor <;> intro hz
+    · obtain ⟨x, hx, y, hy, rfl⟩ := hg.1 hz |> mem_prod.mp
+      obtain ⟨w, fyw, w_unq⟩ := hf.2 y hy
+      have hw := hf.1 fyw |> pair_mem_prod.mp |>.2
+      rw [pair_mem_composition]
+      use w, hw
+      rw [mem_inv]
+      and_intros
+      · rw [←eq, pair_mem_composition]
+        use y, hy, hz, fyw
+      · exact fyw
+    · rw [mem_composition] at hz
+      obtain ⟨x, w, y, rfl, hx, hy, hw, gwx, fyw⟩ := hz
+      rw [mem_inv] at fyw
+      rw [←eq, pair_mem_composition] at gwx
+      obtain ⟨y', hy', gxy', fy'w⟩ := gwx
+      obtain rfl := hbij.1 _ _ _ hy hy' hw fyw fy'w
+      exact gxy'
+  mpr := by
+    intro eq
+    ext1 z
+    constructor <;> intro hz
+    · rw [mem_composition] at hz
+      obtain ⟨x, w, y, rfl, hx, hy, hw, gwx, fyw⟩ := hz
+      rw [eq, pair_mem_composition] at gwx
+      obtain ⟨y', hy', gy'y, fwy'⟩ := gwx
+      rw [mem_inv] at fwy'
+      obtain rfl := hf.2 w hw |>.unique fyw fwy'
+      exact gy'y
+    · obtain ⟨x, hx, y, hy, rfl⟩ := hh.1 hz |> mem_prod.mp
+      rw [pair_mem_composition]
+      obtain ⟨w, hw, fyw⟩ := hbij.2 y hy
+      use w, hw
+      and_intros
+      · rw [eq, pair_mem_composition]
+        use y, hy, hz
+        rwa [mem_inv]
+      · exact fyw
+
+@[simp] theorem fcomp_bij_right_cancel_iff {A B C : ZFSet} {f : ZFSet}
+  {hf : IsFunc A B f} (hbij : f.IsBijective hf) {g₁ g₂ : ZFSet}
+  (hg₁ : IsFunc B C g₁) (hg₂ : IsFunc B C g₂) :
+    g₁ ∘ᶻ f = g₂ ∘ᶻ f ↔ g₁ = g₂ := by
+  conv_lhs =>
+    rw [fcomp_bij_fcomp_inv_right hbij hg₁ (IsFunc_of_composition_IsFunc hg₂ hf)]
+    change g₁ = (g₂ ∘ᶻ f ∘ᶻ f⁻¹)
+    rw [←fcomp_assoc]
+    conv =>
+      enter [2]
+      conv =>
+        enter [2]
+        rw [composition_inv_self_of_bijective hbij]
+      rw [fcomp, Id.composition_right hg₂.1]
+
+@[simp] theorem fcomp_bij_left_cancel_iff {A B C : ZFSet} {f : ZFSet} {hf : IsFunc B C f}
+  (hbij : f.IsBijective hf) {g₁ g₂ : ZFSet} (hg₁ : IsFunc A B g₁) (hg₂ : IsFunc A B g₂) :
+    f ∘ᶻ g₁ = f ∘ᶻ g₂ ↔ g₁ = g₂ := by
+  conv_lhs =>
+    rw [fcomp_bij_fcomp_inv_left hbij hg₁ (IsFunc_of_composition_IsFunc hf hg₂)]
+    change g₁ = (f⁻¹ ∘ᶻ (f ∘ᶻ g₂))
+    rw [fcomp_assoc]
+    conv =>
+      enter [2]
+      conv =>
+        enter [1]
+        rw [composition_self_inv_of_bijective hbij]
+      rw [fcomp, Id.composition_left hg₂.1]
 
 /--
 The image of a set under a relation.
