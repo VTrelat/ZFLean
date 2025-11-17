@@ -991,10 +991,10 @@ instance : PartialOrder ZFInt where
 instance : IsOrderedRing ZFInt where
   add_le_add_left _ _ h z := (add_le_add_iff_left z).mpr h
   zero_le_one := Or.inl zero_lt_one
-  mul_le_mul_of_nonneg_left a b := mul_le_mul_left
-  mul_le_mul_of_nonneg_right a b c h h' := by
-    rw [mul_comm a, mul_comm b]
-    exact mul_le_mul_left c h h'
+  mul_le_mul_of_nonneg_left a b := fun _ _ ↦ (mul_le_mul_left a · b)
+  mul_le_mul_of_nonneg_right a h b c h' := by
+    rw [mul_comm b, mul_comm c]
+    exact mul_le_mul_left a h' h
 
 end ZFInt
 
