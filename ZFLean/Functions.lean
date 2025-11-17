@@ -277,6 +277,12 @@ def IsSurjective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
 def IsBijective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
   f.IsInjective ∧ f.IsSurjective
 
+theorem IsInjective.ofBijective {f A B C : ZFSet} {hf : IsFunc A B f}
+  (f_bij : f.IsBijective hf) (B_sub_C : B ⊆ C) :
+    f.IsInjective (is_func_extend_range hf B_sub_C) :=
+  fun _ _ z hx hy _ hxy hxz ↦
+    f_bij.1 _ _ z hx hy (pair_mem_prod.mp (hf.1 hxy)).2 hxy hxz
+
 theorem bijective_exists1_iff {f A B : ZFSet} (hf : IsFunc A B f) :
   f.IsBijective ↔ ∀ y ∈ B, ∃! x ∈ A, x.pair y ∈ f := by
   constructor
@@ -380,6 +386,16 @@ theorem Id.IsBijective {A : ZFSet} : (𝟙A).IsBijective Id.IsFunc := by
   · intro y yA
     simp_rw [Id, mem_sep, pair_mem_prod, pair_inj, exists_eq_right_right',
       existsAndEq, and_self, yA, and_true]
+
+@[simp]
+theorem range_Id {A : ZFSet} : (𝟙A).Range = A := by
+  ext1 z
+  simp only [mem_sep, and_iff_left_iff_imp]
+  intro hz
+  use z, ⟨hz, ?_⟩
+  · rw [pair_mem_Id_iff hz]
+  · use z, hz
+    rw [pair_mem_Id_iff hz]
 
 def IsPermutation (σ E : ZFSet) := ∃ (hσ : E.IsFunc E σ), σ.IsBijective
 
@@ -2784,6 +2800,26 @@ theorem composition_fprod_Image_bijective {A B A' B' φ ψ : ZFSet}
     intro z hz
     rw [mem_Image] at hz
     exact hz.1
+
+theorem fprod_injective_of_injective {A B A' B' φ ψ : ZFSet}
+  {hφ : A.IsFunc A' φ} {hψ : B.IsFunc B' ψ}
+  (φ_inj : φ.IsInjective) (ψ_inj : ψ.IsInjective) :
+    (fprod φ ψ).IsInjective := by
+  intro x y z hx hy hz xy yz
+  simp only [fprod, mem_prod, mem_lambda, pair_inj, existsAndEq, and_true,
+    exists_eq_left'] at xy yz
+  obtain ⟨⟨a, ha, b, hb, rfl⟩, -, rfl⟩ := xy
+  obtain ⟨⟨c, hc, d, hd, rfl⟩, -, eq⟩ := yz
+  rw [dite_cond_eq_true (eq_true (by rw [pair_mem_prod]; exact ⟨ha, hb⟩)),
+      dite_cond_eq_true (eq_true (by rw [pair_mem_prod]; exact ⟨hc, hd⟩)), pair_inj] at eq
+  simp only [π₁_pair, SetLike.coe_eq_coe, π₂_pair] at eq
+  obtain ⟨φa_eq_φc, ψb_eq_ψd⟩ := eq
+  rw [pair_inj]
+  and_intros
+  · obtain ⟨⟩ := IsInjective.apply_inj hφ φ_inj φa_eq_φc
+    rfl
+  · obtain ⟨⟩ := IsInjective.apply_inj hψ ψ_inj ψb_eq_ψd
+    rfl
 
 end Auxiliary
 
