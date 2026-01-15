@@ -1359,6 +1359,213 @@ theorem ZFNat.iso_eq_iff {n m : ZFNat} : ↑n ≅ᶻ ↑m ↔ n = m where
     rintro rfl
     apply isIso_refl
 
+open Classical in
+noncomputable def currify {A B C : ZFSet} (f : ZFSet)
+  (hf : (A.prod B).IsFunc C f := by zfun) : ZFSet :=
+  λᶻ : A   → (B.funs C)
+       | a ↦ if ha : a ∈ A then
+                λᶻ : B → C
+                   | b ↦ if hb : b ∈ B then
+                          @ᶻf ⟨a.pair b, by rw [is_func_dom_eq hf, pair_mem_prod]; exact ⟨ha, hb⟩⟩
+                        else ∅
+              else ∅
+
+@[zfun]
+theorem currify_is_func {A B C : ZFSet} (f : ZFSet)
+  (hf : (A.prod B).IsFunc C f := by zfun) : A.IsFunc (B.funs C) (currify f hf) := by
+  apply lambda_isFunc
+  intro x hx
+  rw [dite_cond_eq_true (eq_true hx), mem_funs]
+  and_intros
+  · exact lambda_subset
+  · intro y hy
+    obtain ⟨z, hz, z_unq⟩ := hf.2 (x.pair y) (by rw [pair_mem_prod]; exact ⟨hx, hy⟩)
+    use z
+    and_intros <;> beta_reduce
+    · rw [lambda_spec]
+      and_intros
+      · exact hy
+      · exact hf.1 hz |> pair_mem_prod.mp |>.2
+      · rw [dite_cond_eq_true (eq_true hy), fapply.of_pair (is_func_is_pfunc hf) hz]
+    · intro w hw
+      rw [lambda_spec, dite_cond_eq_true (eq_true hy)] at hw
+      rw [hw.2.2]
+      apply z_unq
+      apply fapply.def
+
+open Classical in
+noncomputable def uncurrify {A B C : ZFSet} (g : ZFSet)
+  (hg : A.IsFunc (B.funs C) g := by zfun) : ZFSet :=
+  λᶻ : (A.prod B) → C
+       | ab ↦ if hab : ab ∈ A.prod B then
+                let a := ab.π₁
+                let b := ab.π₂
+                let f := @ᶻg ⟨a, by
+                    rw [is_func_dom_eq hg]
+                    rw [pair_eta hab, pair_mem_prod] at hab
+                    exact hab.1
+                  ⟩
+                have hf := mem_funs.mp f.2
+                @ᶻf ⟨b, by
+                    rw [is_func_dom_eq hf]
+                    rw [pair_eta hab, pair_mem_prod] at hab
+                    exact hab.2
+                  ⟩
+              else ∅
+
+@[zfun]
+theorem uncurrify_is_func {A B C : ZFSet} (g : ZFSet)
+  (hg : A.IsFunc (B.funs C) g := by zfun) : (A.prod B).IsFunc C (uncurrify g hg) := by
+  apply lambda_isFunc
+  intro z hz
+  simp only [dite_cond_eq_true (eq_true hz), SetLike.coe_mem]
+
+@[simp]
+theorem currify_of_uncurrify {A B C : ZFSet} (f : ZFSet)
+    (hf : (A.IsFunc (B.funs C)) f := by zfun) :
+  currify (uncurrify f) = f := by
+    simp only [currify, uncurrify, lambda_eta hf]
+    rw [lambda_ext_iff]
+    · intro x hx
+      simp_rw [dite_cond_eq_true (eq_true hx)]
+      conv =>
+        enter [2,1]
+        change ?f_x
+      rw [lambda_eta (mem_funs.mp ?f_x.2), lambda_ext_iff]
+      · intro y hy
+        simp_rw [dite_cond_eq_true (eq_true hy)]
+        conv_lhs =>
+          rw [
+            fapply_lambda
+              (by intro _ h; rw [dite_cond_eq_true (eq_true h)]; apply fapply_mem_range)
+              (by rw [pair_mem_prod]; exact ⟨hx, hy⟩),
+            dite_cond_eq_true (eq_true (by rw [pair_mem_prod]; exact ⟨hx, hy⟩))]
+          simp only [π₁_pair, π₂_pair]
+        congr 2
+        · simp only [π₁_pair]
+        · apply proof_irrel_heq
+        · congr 1
+          · funext x
+            simp only [π₁_pair, mem_sep]
+          · apply proof_irrel_heq
+      · intro _ h
+        rw [dite_cond_eq_true (eq_true h)]
+        apply fapply_mem_range
+    · intro _ hx
+      rw [dite_cond_eq_true (eq_true hx)]
+      apply mem_funs_of_lambda
+      intro _ hx
+      rw [dite_cond_eq_true (eq_true hx)]
+      apply fapply_mem_range
+
+theorem uncurrify_of_currify {A B C : ZFSet} (g : ZFSet)
+    (hg : (A.prod B).IsFunc C g := by zfun) :
+  uncurrify (currify g) = g := by
+    simp only [currify, uncurrify, lambda_eta hg]
+    rw [lambda_ext_iff]
+    · intro ab hab
+      obtain ⟨a, ha, b, hb, rfl⟩ := mem_prod.mp hab
+      simp_rw [dite_cond_eq_true (eq_true hab), π₂_pair]
+      conv_lhs =>
+        rw [fapply_eq_Image_singleton (by rw [←mem_funs]; apply fapply_mem_range) hb]
+        conv =>
+          enter [1,1]
+          simp only [π₁_pair]
+          rw [
+            fapply_lambda (by
+                intro _ h
+                rw [dite_cond_eq_true (eq_true h)]
+                apply mem_funs_of_lambda
+                intro _ hx
+                rw [dite_cond_eq_true (eq_true hx)]
+                apply fapply_mem_range
+              ) ha,
+            dite_cond_eq_true (eq_true ha)]
+        rw [←fapply_eq_Image_singleton (lambda_isFunc (fun h ↦ by
+              rw [dite_cond_eq_true (eq_true h)]
+              apply fapply_mem_range)) hb,
+          fapply_lambda (fun h ↦ by rw [dite_cond_eq_true (eq_true h)]; apply fapply_mem_range) hb,
+          dite_cond_eq_true (eq_true hb)]
+    · intro _ h
+      rw [dite_cond_eq_true (eq_true h)]
+      apply fapply_mem_range
+
+open Classical in
+theorem isIso_curry {A B C : ZFSet} :
+  (A.prod B).funs C ≅ᶻ A.funs (B.funs C) := by
+  let curry  := λᶻ : (A.prod B).funs C → A.funs (B.funs C)
+    | f ↦ if hf : f ∈ (A.prod B).funs C then
+            currify f (mem_funs.mp hf)
+          else ∅
+  let uncurry := λᶻ : A.funs (B.funs C) → (A.prod B).funs C
+    | g ↦ if hg : g ∈ A.funs (B.funs C) then
+            uncurrify g (mem_funs.mp hg)
+          else ∅
+  have hcurry : IsFunc ((A.prod B).funs C) (A.funs (B.funs C)) curry := by
+    apply lambda_isFunc
+    intro f hf
+    rw [dite_cond_eq_true (eq_true hf), mem_funs]
+    apply currify_is_func
+  have huncurry : IsFunc (A.funs (B.funs C)) ((A.prod B).funs C) uncurry := by
+    apply lambda_isFunc
+    intro g hg
+    rw [dite_cond_eq_true (eq_true hg), mem_funs]
+    apply uncurrify_is_func
+
+  have l_inv : (uncurry ∘ᶻ curry) = 𝟙((A.prod B).funs C) := by
+    rw [is_func_ext_iff (IsFunc_of_composition_IsFunc huncurry hcurry) Id.IsFunc]
+    intro f hf
+    rw [←SetLike.coe_eq_coe, fapply_Id hf]
+    conv_lhs =>
+      rw [fapply_composition huncurry hcurry hf]
+      unfold uncurry
+      rw [
+        fapply_lambda (by
+            intro _ h
+            rw [dite_cond_eq_true (eq_true h), mem_funs]
+            apply uncurrify_is_func
+          ) (fapply_mem_range _ _),
+        dite_cond_eq_true (eq_true (fapply_mem_range _ _))]
+      conv =>
+        enter [1]
+        unfold curry
+        rw [
+          fapply_lambda (by
+              intro _ h
+              rw [dite_cond_eq_true (eq_true h), mem_funs]
+              apply currify_is_func
+            ) hf,
+          dite_cond_eq_true (eq_true hf)]
+      rw [uncurrify_of_currify f (mem_funs.mp hf)]
+
+  have r_inv : (curry ∘ᶻ uncurry) = 𝟙(A.funs (B.funs C)) := by
+    rw [is_func_ext_iff (IsFunc_of_composition_IsFunc hcurry huncurry) Id.IsFunc]
+    intro g hg
+    rw [←SetLike.coe_eq_coe, fapply_Id hg]
+    conv_lhs =>
+      rw [fapply_composition hcurry huncurry hg]
+      unfold curry
+      rw [
+        fapply_lambda (by
+            intro _ h
+            rw [dite_cond_eq_true (eq_true h), mem_funs]
+            apply currify_is_func
+          ) (fapply_mem_range _ _),
+        dite_cond_eq_true (eq_true (fapply_mem_range _ _))]
+      conv =>
+        enter [1]
+        unfold uncurry
+        rw [
+          fapply_lambda (by
+              intro _ h
+              rw [dite_cond_eq_true (eq_true h), mem_funs]
+              apply uncurrify_is_func
+            ) hg,
+          dite_cond_eq_true (eq_true hg)]
+      rw [currify_of_uncurrify g (mem_funs.mp hg)]
+
+  exact isIso_of_two_sided_inverse l_inv r_inv
+
 end Lemmas
 
 end Isomorphisms
