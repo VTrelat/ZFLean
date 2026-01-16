@@ -1397,18 +1397,14 @@ open Classical in
 noncomputable def uncurrify {A B C : ZFSet} (g : ZFSet)
   (hg : A.IsFunc (B.funs C) g := by zfun) : ZFSet :=
   λᶻ : (A.prod B) → C
-       | ab ↦ if hab : ab ∈ A.prod B then
-                let a := ab.π₁
-                let b := ab.π₂
+       | (a, b) ↦ if hab : a ∈ A ∧ b ∈ B then
                 let f := @ᶻg ⟨a, by
                     rw [is_func_dom_eq hg]
-                    rw [pair_eta hab, pair_mem_prod] at hab
                     exact hab.1
                   ⟩
                 have hf := mem_funs.mp f.2
                 @ᶻf ⟨b, by
                     rw [is_func_dom_eq hf]
-                    rw [pair_eta hab, pair_mem_prod] at hab
                     exact hab.2
                   ⟩
               else ∅
@@ -1418,7 +1414,10 @@ theorem uncurrify_is_func {A B C : ZFSet} (g : ZFSet)
   (hg : A.IsFunc (B.funs C) g := by zfun) : (A.prod B).IsFunc C (uncurrify g hg) := by
   apply lambda_isFunc
   intro z hz
-  simp only [dite_cond_eq_true (eq_true hz), SetLike.coe_mem]
+  rw [mem_prod] at hz
+  obtain ⟨a, ha, b, hb, rfl⟩ := hz
+  rw [dite_cond_eq_true (eq_true (by simp only [π₁_pair, ha, π₂_pair, hb, and_self]))]
+  simp only [π₂_pair, SetLike.coe_mem]
 
 @[simp]
 theorem currify_of_uncurrify {A B C : ZFSet} (f : ZFSet)
@@ -1437,9 +1436,13 @@ theorem currify_of_uncurrify {A B C : ZFSet} (f : ZFSet)
         conv_lhs =>
           rw [
             fapply_lambda
-              (by intro _ h; rw [dite_cond_eq_true (eq_true h)]; apply fapply_mem_range)
+              (by
+                intro _ h
+                rw [pair_eta h, pair_mem_prod] at h
+                rw [dite_cond_eq_true (eq_true h)]
+                apply fapply_mem_range)
               (by rw [pair_mem_prod]; exact ⟨hx, hy⟩),
-            dite_cond_eq_true (eq_true (by rw [pair_mem_prod]; exact ⟨hx, hy⟩))]
+            dite_cond_eq_true (eq_true (by simp only [π₁_pair, π₂_pair, hx, hy, and_self]))]
           simp only [π₁_pair, π₂_pair]
         congr 2
         · simp only [π₁_pair]
@@ -1467,6 +1470,7 @@ theorem uncurrify_of_currify {A B C : ZFSet} (g : ZFSet)
       obtain ⟨a, ha, b, hb, rfl⟩ := mem_prod.mp hab
       simp_rw [dite_cond_eq_true (eq_true hab), π₂_pair]
       conv_lhs =>
+        rw [dite_cond_eq_true (eq_true (by simp only [π₁_pair, ha, π₂_pair, hb, and_self]))]
         rw [fapply_eq_Image_singleton (by rw [←mem_funs]; apply fapply_mem_range) hb]
         conv =>
           enter [1,1]
@@ -1487,7 +1491,7 @@ theorem uncurrify_of_currify {A B C : ZFSet} (g : ZFSet)
           fapply_lambda (fun h ↦ by rw [dite_cond_eq_true (eq_true h)]; apply fapply_mem_range) hb,
           dite_cond_eq_true (eq_true hb)]
     · intro _ h
-      rw [dite_cond_eq_true (eq_true h)]
+      rw [dite_cond_eq_true (eq_true (by rwa [←pair_mem_prod, ←pair_eta h]))]
       apply fapply_mem_range
 
 open Classical in
