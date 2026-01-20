@@ -60,6 +60,124 @@ theorem cases {A B : ZFSet} (x : A ⊎ B) : x.val.π₂ ∈ A ∨ x.val.π₂ �
       rw [π₂_pair]
       exact hb.2
 
+@[cases_eliminator]
+noncomputable def casesOn.{u, v} {A B : ZFSet.{u}} {motive : A ⊎ B → Sort v} (x : A ⊎ B)
+  (inl : (val : {x // x ∈ A}) → motive (inl val))
+  (inr : (val : {x // x ∈ B}) → motive (inr val)) : motive x := by
+  by_cases h : x.val.π₁ = ZFBool.false.val
+  · have : x.val.π₂ ∈ A := by
+      obtain ⟨x, hx⟩ := x
+      rw [mem_union, mem_prod] at hx
+      obtain ⟨a, ha, b, hb, rfl⟩ | hx := hx
+      · rwa [π₂_pair]
+      · dsimp at h
+        rw [pair_eta hx, pair_mem_prod, mem_singleton, h] at hx
+        nomatch zftrue_ne_zffalse hx.1.symm
+    have : x = Sum.inl ⟨x.val.π₂, this⟩ := by
+      obtain ⟨x, hx⟩ := x
+      rw [mem_union, mem_prod] at hx
+      obtain ⟨a, ha, b, hb, rfl⟩ | hx := hx
+      · rw [π₁_pair] at h
+        subst a
+        congr 2
+        dsimp
+        rw [π₂_pair]
+      · rw [pair_eta hx, pair_mem_prod, mem_singleton, h] at hx
+        nomatch zftrue_ne_zffalse hx.1.symm
+    rw [this]
+    apply inl
+  · have x₁_eq_true : x.val.π₁ = ZFBool.true := by
+      have := Subtype.property x
+      rw [mem_union, mem_prod] at this
+      obtain ⟨a, ha, b, hb, eq⟩ | hx := this
+      · rw [eq, π₁_pair] at h
+        rw [mem_singleton] at ha
+        contradiction
+      · rw [pair_eta hx, pair_mem_prod, mem_singleton] at hx
+        exact hx.1
+    have : x.val.π₂ ∈ B := by
+      obtain ⟨x, hx⟩ := x
+      rw [mem_union, mem_prod] at hx
+      obtain ⟨a, ha, b, hb, rfl⟩ | hx := hx
+      · rw [mem_union, pair_mem_prod, mem_singleton] at hx
+        obtain ⟨rfl, -⟩ | hb := hx
+        · rw [π₁_pair] at x₁_eq_true
+          nomatch zftrue_ne_zffalse x₁_eq_true.symm
+        · rw [pair_mem_prod] at hb
+          rw [π₂_pair]
+          exact hb.2
+      · rw [pair_eta hx, pair_mem_prod, mem_singleton] at hx
+        exact hx.2
+    have : x = Sum.inr ⟨x.val.π₂, this⟩ := by
+      obtain ⟨x, hx⟩ := x
+      rw [mem_union, mem_prod] at hx
+      obtain ⟨a, ha, b, hb, rfl⟩ | hx := hx
+      · rw [mem_union, pair_mem_prod, mem_singleton] at hx
+        obtain ⟨rfl, -⟩ | hb := hx
+        · rw [π₁_pair] at x₁_eq_true
+          nomatch zftrue_ne_zffalse x₁_eq_true.symm
+        · congr 2
+          · dsimp
+            rwa [π₁_pair] at x₁_eq_true
+          · dsimp
+            rw [π₂_pair]
+      · congr
+        conv_lhs => rw [pair_eta hx]
+        rw [pair_inj]
+        exact ⟨x₁_eq_true, rfl⟩
+    rw [this]
+    apply inr
+
+@[simp]
+theorem casesOn_of_inl {A B : ZFSet} {motive : A ⊎ B → Sort*} (a : {x // x ∈ A})
+  (inl_case : (val : {x // x ∈ A}) → motive (inl val))
+  (inr_case : (val : {x // x ∈ B}) → motive (inr val)) :
+    casesOn (inl a) inl_case inr_case = inl_case a := by
+  rw [casesOn, dite_cond_eq_true (eq_true (by rw [inl, π₁_pair]))]
+  dsimp
+  rw [cast_eq_iff_heq]
+  congr
+  unfold inl
+  rw [π₂_pair]
+
+@[simp]
+theorem casesOn_of_inr {A B : ZFSet} {motive : A ⊎ B → Sort*} (a : {x // x ∈ B})
+  (inl_case : (val : {x // x ∈ A}) → motive (inl val))
+  (inr_case : (val : {x // x ∈ B}) → motive (inr val)) :
+    casesOn (inr a) inl_case inr_case = inr_case a := by
+  rw [casesOn, dite_cond_eq_false (eq_false ?_)]
+  · dsimp
+    rw [cast_eq_iff_heq]
+    congr
+    unfold inr
+    rw [π₂_pair]
+  · rw [inr, π₁_pair]
+    exact zftrue_ne_zffalse
+
+noncomputable instance {A B : ZFSet} : A ⊎ B ≃ ({x // x ∈ A} ⊕ {x // x ∈ B}) where
+  toFun x := by
+    cases x with
+    | inl a => exact _root_.Sum.inl a
+    | inr b => exact _root_.Sum.inr b
+  invFun x := by
+    cases x with
+    | inl a => exact inl a
+    | inr b => exact inr b
+  left_inv := by
+    intro x
+    cases x with
+    | inl a =>
+      beta_reduce
+      conv_lhs => rw [casesOn_of_inl]
+    | inr b =>
+      beta_reduce
+      conv_lhs => rw [casesOn_of_inr]
+  right_inv := by
+    intro x
+    cases x with
+    | inl a => simp only [casesOn_of_inl]
+    | inr b => simp only [casesOn_of_inr]
+
 end Sum
 
 def Option (S : ZFSet) := {∅} ⊎ S
