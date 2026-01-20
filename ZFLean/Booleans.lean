@@ -506,6 +506,15 @@ theorem ofBool_decide_eq_false_iff {P : Prop} [Decidable P] : ofBool (decide P) 
       rw [Bool.decide_iff] at hP
       contradiction
 
+instance : ZFBool ≃ Bool where
+  toFun := toBool
+  invFun := ofBool
+  left_inv := of_Bool_toBool
+  right_inv := to_Bool_ofBool
+
+instance : Coe Bool ZFBool := ⟨ofBool⟩
+instance : Coe ZFBool Bool := ⟨toBool⟩
+
 end ZFBool
 
 end Booleans
