@@ -5,6 +5,7 @@ Authors: Vincent Trélat
 -/
 import ZFLean.Basic
 import Mathlib.Algebra.Ring.Defs
+import Mathlib.Tactic.Ring
 
 /-! # ZFC Natural numbers
 
@@ -1449,6 +1450,13 @@ instance : Semiring ZFNat where
 
 instance : CommSemiring ZFNat where
   mul_comm := mul_comm
+
+instance : Std.Associative (α := ZFNat) (· + ·) := ⟨(ZFNat.add_assoc · · · |>.symm)⟩
+instance : Std.Commutative (α := ZFNat) (· + ·) := ⟨ZFNat.add_comm⟩
+
+instance : Std.Associative (α := ZFNat) (· * ·) := ⟨ZFNat.mul_assoc⟩
+instance : Std.Commutative (α := ZFNat) (· * ·) := ⟨ZFNat.mul_comm⟩
+
 
 instance : IsLeftCancelAdd ZFNat where
   add_left_cancel x y z := by rw [ZFNat.add_left_cancel]; intro; trivial

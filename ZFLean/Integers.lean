@@ -76,6 +76,17 @@ protected instance : One ZFInt := ⟨one⟩
 theorem zero_eq : (0 : ZFInt) = mk (0, 0) := rfl
 theorem one_eq : (1 : ZFInt) = mk (1, 0) := rfl
 
+theorem one_ne_zero : (1 : ZFInt) ≠ 0 := by
+  rw [zero_eq, one_eq]
+  rintro h
+  rw [ZFInt.eq, ZFSet.zrel] at h
+  simp at h
+  unfold_projs at h
+  injection h with h
+  rw [ZFSet.ext_iff] at h
+  simp only [mem_insert_iff, or_iff_right_iff_imp, forall_eq] at h
+  nomatch h
+
 theorem mk_eq_zero_iff {n m} : ZFInt.mk (n,m) = 0 ↔ n = m := by
   constructor
   · intro h
@@ -260,12 +271,6 @@ private noncomputable abbrev zsmul (n : ℤ) (x : ZFInt) : ZFInt :=
   match n with
   | .ofNat n => nsmul n x
   | .negSucc n => -nsmul (n+1) x
-
-instance : Std.Associative (α := ZFNat) (· + ·) := ⟨(ZFNat.add_assoc · · · |>.symm)⟩
-instance : Std.Commutative (α := ZFNat) (· + ·) := ⟨ZFNat.add_comm⟩
-
-instance : Std.Associative (α := ZFNat) (· * ·) := ⟨ZFNat.mul_assoc⟩
-instance : Std.Commutative (α := ZFNat) (· * ·) := ⟨ZFNat.mul_comm⟩
 
 private theorem mul_wf {a b c d s t u v : ZFNat}
   (h₁ : ZFSet.zrel (a, b) (s, t)) (h₂ : ZFSet.zrel (c, d) (u, v)) :

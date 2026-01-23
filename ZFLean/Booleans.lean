@@ -519,6 +519,25 @@ end ZFBool
 
 end Booleans
 
+section AdditionnalLemmas
+
+namespace ZFBool
+
+theorem and_coe (p q : ZFBool) : p ⋀ q = ((p : Bool) && (q : Bool)) := by
+  rw [← toBool_and, of_Bool_toBool]
+theorem or_coe (p q : ZFBool) : p ⋁ q = ((p : Bool) || (q : Bool)) := by
+  rw [← toBool_or, of_Bool_toBool]
+theorem not_coe (p : ZFBool) : ZFBool.not p = ¬(p : Bool) := by
+  rw [← toBool_not]
+
+theorem and_or_distrib_left (p q r : ZFBool) : p ⋀ (q ⋁ r) = (p ⋀ q) ⋁ (p ⋀ r) := by
+  rw [and_coe, or_coe, and_coe, and_coe, or_coe]
+  iterate 3 rw [to_Bool_ofBool]
+  rw [Bool.and_or_distrib_left]
+
+end ZFBool
+end AdditionnalLemmas
+
 end ZFSet
 
 end
