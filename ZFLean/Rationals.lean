@@ -85,6 +85,8 @@ abbrev one : ZFRat := mk (1, ⟨1, ZFInt.one_ne_zero⟩)
 protected instance : Zero ZFRat := ⟨zero⟩
 protected instance : One ZFRat := ⟨one⟩
 
+instance : Inhabited ZFRat := ⟨0⟩
+
 theorem zero_eq : (0 : ZFRat) = mk (0, ⟨1, ZFInt.one_ne_zero⟩) := rfl
 theorem one_eq : (1 : ZFRat) = mk (1, ⟨1, ZFInt.one_ne_zero⟩) := rfl
 
@@ -107,6 +109,11 @@ theorem mk_eq_one_iff {n m} : ZFRat.mk (n,m) = 1 ↔ n = m where
     rintro rfl
     apply ZFRat.sound
     rw [ZFSet.qrel, mul_one]
+
+theorem one_ne_zero : (1 : ZFRat) ≠ 0 := by
+  intro h
+  rw [one_eq, zero_eq, eq, ZFSet.qrel, mul_one, mul_zero] at h
+  nomatch ZFInt.one_ne_zero h
 
 end Quotient
 section Arithmetic
@@ -440,20 +447,100 @@ protected noncomputable abbrev inv : ZFRat' → ZFRat' := fun ⟨x, hx⟩ ↦ by
     contradiction⟩
 
 noncomputable instance : Inv ZFRat' := ⟨ZFRat.inv⟩
+open Classical in
+noncomputable instance : Inv ZFRat where
+  inv x := if hx : x ≠ 0 then ZFRat.inv ⟨x, hx⟩ else 0
 
-noncomputable abbrev div (n : ZFRat) (m : ZFRat') : ZFRat := n * m⁻¹
-noncomputable instance : HDiv ZFRat ZFRat' ZFRat := ⟨ZFRat.div⟩
-noncomputable instance : Div ZFRat' where
-  div := fun ⟨n, hn⟩ m ↦ ⟨n / m, by
-    dsimp [HDiv.hDiv, div]
-    intro h
-    rw [mul_eq_zero_iff] at h
-    rcases h with rfl | h
-    · nomatch hn
-    · nomatch m⁻¹.2 h
-  ⟩
+theorem inv_eq {a : ZFRat} (ha : a ≠ 0) : a⁻¹ = (⟨a, ha⟩ : ZFRat')⁻¹ := by
+  dsimp [Inv.inv]
+  rw [dif_pos ha]
 
+noncomputable abbrev hdiv (n : ZFRat) (m : ZFRat') : ZFRat := n * m⁻¹
+open Classical in
+noncomputable abbrev div (n m : ZFRat) : ZFRat :=
+  if hm : m ≠ 0 then hdiv n ⟨m, hm⟩ else 0
+noncomputable instance : HDiv ZFRat ZFRat' ZFRat := ⟨hdiv⟩
+noncomputable instance : Div ZFRat := ⟨div⟩
+
+
+theorem div_eq {n m : ZFRat} (hm : m ≠ 0) : n / m = n / (⟨m, hm⟩:ZFRat') := rfl
+theorem div_eq_mul_inv {n m : ZFRat} (hm : m ≠ 0) : n / m = n * (⟨m, hm⟩:ZFRat')⁻¹ := by
+  dsimp [HDiv.hDiv, Div.div]
+  rw [div, dif_pos hm]
+
+@[simp]
+theorem mul_inv' {a : ZFRat'} : a.1 * a⁻¹ = 1 := by
+  obtain ⟨a, ha⟩ := a
+  induction a using Quotient.ind
+  rename_i a
+  apply sound
+  rw [ZFSet.qrel]
+  simp only [mk_eq, ZFInt.mul_one, ne_eq]
+  change ZFSet.qrel ⟨a.1, ⟨a.2.1, a.2.2⟩⟩ (mk a).out
+  rw [←eq]
+  symm
+  apply mk_out
+@[simp]
+theorem mul_inv {a : ZFRat} (ha : a ≠ 0) : a * a⁻¹ = 1 := by
+  rw [inv_eq ha, @mul_inv' (⟨a, ha⟩ : ZFRat')]
+
+@[simp]
+theorem inv_mul' {a : ZFRat'} : a⁻¹ * a.1 = 1 := by
+  rw [mul_comm]
+  exact mul_inv'
+@[simp]
+theorem inv_mul {a : ZFRat} (ha : a ≠ 0) : a⁻¹ * a = 1 := by
+  rw [mul_comm]
+  exact mul_inv ha
 end Div
+
+noncomputable instance : RatCast ZFRat where
+  ratCast q := ((q.num : ZFRat) / (q.den : ZFRat))
+
+private noncomputable def qsmul (k : ℚ) (m : ZFRat) : ZFRat := (k : ZFRat) * m
+
+private noncomputable def nnqsmul : ℚ≥0 → ZFRat → ZFRat :=
+  fun ⟨k, _⟩ m ↦ qsmul k m
+
+open Classical in
+noncomputable instance : DivisionRing ZFRat where
+  exists_pair_ne := ⟨1, 0, one_ne_zero⟩
+  mul_inv_cancel _ := mul_inv
+  inv_zero := by
+    simp only [Inv.inv, ne_eq, not_true_eq_false, dite_false]
+  div_eq_mul_inv := by
+    intro a b
+    by_cases hb : b = 0
+    · subst b
+      dsimp [HDiv.hDiv, Div.div, div, Inv.inv]
+      iterate 2 rw [dite_cond_eq_false (eq_false (fun a ↦ a rfl))]
+      rw [mul_zero]
+    · rw [div_eq_mul_inv hb, ←inv_eq]
+  qsmul := qsmul
+  nnqsmul := nnqsmul
+  ratCast_def _ := rfl
+  qsmul_def _ _ := by rfl
+  nnqsmul_def := by
+    rintro ⟨k, hk⟩ m
+    unfold nnqsmul qsmul
+    dsimp
+    unfold_projs
+    have : (↑k.num.natAbs : ZFRat) = ↑k.num := by
+      unfold Int.natAbs
+      cases k using Rat.casesOn with
+      | mk' n d hd _ =>
+        simp only [Rat.le_iff, Rat.num_ofNat, MulZeroClass.zero_mul, Rat.den_ofNat, Nat.cast_one,
+          _root_.mul_one] at hk
+        dsimp
+        have : n = Int.ofNat n.natAbs := by
+          rw [Int.ofNat_eq_coe, ←Int.eq_natAbs_of_nonneg hk]
+        rw [this]
+        rfl
+    dsimp [NNRat.cast, NNRatCast.nnratCast, NNRat.castRec]
+    rw [this]
+    rfl
+
+noncomputable instance : Field ZFRat := {}
 
 end Arithmetic
 end ZFRat
