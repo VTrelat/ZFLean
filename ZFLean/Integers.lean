@@ -1001,6 +1001,11 @@ instance : IsOrderedRing ZFInt where
     rw [mul_comm b, mul_comm c]
     exact mul_le_mul_left a h' h
 
+instance : PosMulStrictMono ZFInt where
+  mul_lt_mul_of_pos_left _ h _ _ h' := mul_lt_mul_of_pos_left h' h
+instance : MulPosStrictMono ZFInt where
+  mul_lt_mul_of_pos_right _ h _ _ h' := mul_lt_mul_of_pos_right h' h
+
 end ZFInt
 
 noncomputable abbrev Int := Nat.prod {∅} ∪ ZFSet.prod {∅} Nat

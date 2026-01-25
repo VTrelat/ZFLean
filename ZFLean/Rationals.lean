@@ -542,6 +542,57 @@ noncomputable instance : DivisionRing ZFRat where
 
 noncomputable instance : Field ZFRat := {}
 
+section Order
+
+def lt (x y : ZFRat) : Prop :=
+  Quotient.liftOn₂ x y (fun ⟨a, b⟩ ⟨c, d⟩ ↦ a * d < c * b)
+    fun ⟨x₁, x₂, hx₂⟩ ⟨y₁, y₂, hy₂⟩ ⟨u₁, u₂, hu₂⟩ ⟨v₁, v₂, hv₂⟩ hxu hyv ↦ by
+      have h1 : x₁ * u₂ = x₂ * u₁ := hxu
+      have h2 : y₁ * v₂ = y₂ * v₁ := hyv
+      dsimp
+      ext
+      obtain u₂_neg | u₂_pos : u₂ < 0 ∨ 0 < u₂ := by
+        rcases lt_trichotomy u₂ 0 with h | rfl | h
+        · left; exact h
+        · contradiction
+        · right; exact h
+      all_goals
+        obtain v₂_neg | v₂_pos : v₂ < 0 ∨ 0 < v₂ := by
+          rcases lt_trichotomy v₂ 0 with h | rfl | h
+          · left; exact h
+          · contradiction
+          · right; exact h
+      all_goals
+        obtain x₂_neg | x₂_pos : x₂ < 0 ∨ 0 < x₂ := by
+          rcases lt_trichotomy x₂ 0 with h | rfl | h
+          · left; exact h
+          · contradiction
+          · right; exact h
+      all_goals
+        obtain y₂_neg | y₂_pos : y₂ < 0 ∨ 0 < y₂ := by
+          rcases lt_trichotomy y₂ 0 with h | rfl | h
+          · left; exact h
+          · contradiction
+          · right; exact h
+      all_goals constructor <;> intro h
+      · have : (x₁ * u₂) * (y₂ * v₂) < (y₁ * v₂) * (x₂ * u₂) := by
+          ac_change (x₁ * y₂) * (u₂ * v₂) < (y₁ * x₂) * (u₂ * v₂)
+          exact ZFInt.mul_lt_mul_of_pos_right h (ZFInt.mul_neg_neg_pos u₂ v₂ u₂_neg v₂_neg)
+        rw [h1, h2] at this
+        convert_to u₁ * v₂ * (y₂ * x₂) <  v₁ * u₂ * (y₂ * x₂) at this
+        · ac_rfl
+        · ac_rfl
+        · have mul_pos : 0 < y₂ * x₂ := ZFInt.mul_neg_neg_pos y₂ x₂ y₂_neg x₂_neg
+          rwa [mul_lt_mul_iff_of_pos_right mul_pos] at this
+      · sorry
+
+
+
+instance : LT ZFRat where lt := lt
+instance : LE ZFRat where le x y := x < y ∨ x = y
+
+end Order
+
 end Arithmetic
 end ZFRat
 end Rationals
