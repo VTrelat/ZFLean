@@ -173,11 +173,9 @@ theorem prod_inj {A B C D : ZFSet} (h : A.prod B = C.prod D) (hA : A ≠ ∅) (h
     A = C ∧ B = D := by
   obtain ⟨a, ha⟩ := nonempty_exists_iff.mp hA
   obtain ⟨b, hb⟩ := nonempty_exists_iff.mp hB
-
   obtain ⟨aC, bD⟩ : a ∈ C ∧ b ∈ D := by
     rw [←pair_mem_prod, ←h, pair_mem_prod]
     exact ⟨ha, hb⟩
-
   rw [ZFSet.ext_iff, ZFSet.ext_iff]
   suffices ∀ x y, (x ∈ A ↔ x ∈ C) ∧ (y ∈ B ↔ y ∈ D) by
     and_intros

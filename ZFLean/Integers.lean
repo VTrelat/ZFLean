@@ -599,21 +599,16 @@ instance : IsOrderedAddMonoid ZFInt where
     · change x₁ + y₂ < x₂ + y₁ at h
       simp_rw [add_eq]
       left
-      change z₁ + x₁ + (z₂ + y₂) < z₂ + x₂ + (z₁ + y₁)
-      conv_lhs => rw [← ZFNat.add_assoc, ZFNat.add_comm z₁, ZFNat.add_comm z₂, ZFNat.add_assoc,
-        ←ZFNat.add_assoc, ZFNat.add_comm z₂]
-      conv_rhs => rw [ZFNat.add_comm z₂, ←ZFNat.add_assoc, ZFNat.add_comm z₂, ZFNat.add_comm z₁,
-        ZFNat.add_assoc, ZFNat.add_assoc, ←ZFNat.add_assoc]
-      exact ZFNat.add_lt_add_iff_right.mpr h
+      change (x₁ + z₁) + (y₂ + z₂) < (x₂ + z₂) + (y₁ + z₁)
+      ac_change (x₁ + y₂) + (z₁ + z₂) <  (x₂ + y₁) + (z₁ + z₂)
+      rwa [ZFNat.add_lt_add_iff_right]
     · rw [eq, ZFSet.zrel] at h
       dsimp at h
       right
       rw [add_eq, add_eq, eq, ZFSet.zrel]
       dsimp
-      conv_lhs => rw [← ZFNat.add_assoc, ZFNat.add_comm z₁, ZFNat.add_comm z₂, ZFNat.add_assoc,
-        ←ZFNat.add_assoc, ZFNat.add_comm z₂, h]
-      conv_rhs => rw [ZFNat.add_comm z₂, ←ZFNat.add_assoc, ZFNat.add_comm z₂, ZFNat.add_comm z₁,
-        ZFNat.add_assoc, ZFNat.add_assoc, ←ZFNat.add_assoc]
+      ac_change (x₁ + y₂) + (z₁ + z₂) =  (x₂ + y₁) + (z₁ + z₂)
+      rw [h]
 
 end Inequalities
 
@@ -923,29 +918,29 @@ theorem mul_eq_zero_iff {a b : ZFInt} : a * b = 0 ↔ a = 0 ∨ b = 0 := by
     induction a using Quotient.ind
     induction b using Quotient.ind
     rename_i a b
-    let ⟨a₁, a₂⟩ := a
-    let ⟨b₁, b₂⟩ := b
     simp_rw [mk_eq, mul_eq, zero_eq, eq, ZFSet.zrel, ZFNat.add_zero] at h ⊢
-    rcases ZFNat.instIsStrictTotalOrderLt.trichotomous b₁ b₂ with h' | rfl | h'
+    rcases ZFNat.instIsStrictTotalOrderLt.trichotomous b.1 b.2 with h' | eq | h'
     · have := ZFNat.add_eq_add_sub_eq_sub h.symm
       rw [←ZFNat.left_distrib_mul_sub, ←ZFNat.left_distrib_mul_sub] at this
-      have b₁b₂_ne_0 : b₂ - b₁ ≠ 0 := by
+      have b₁b₂_ne_0 : b.2 - b.1 ≠ 0 := by
         intro contr
         rw [ZFNat.sub_eq_zero_imp_le] at contr
-        rcases contr with contr | rfl
+        rcases contr with contr | eq
         · nomatch ZFNat.lt_irrefl <| ZFNat.lt_trans contr h'
-        · nomatch ZFNat.lt_irrefl h'
+        · rw [eq] at h'
+          nomatch ZFNat.lt_irrefl h'
       left
       exact ZFNat.mul_right_cancel_iff b₁b₂_ne_0 |>.mp this
-    · right; rfl
+    · right; assumption
     · have := ZFNat.add_eq_add_sub_eq_sub h
       rw [←ZFNat.left_distrib_mul_sub, ←ZFNat.left_distrib_mul_sub] at this
-      have b₁b₂_ne_0 : b₁ - b₂ ≠ 0 := by
+      have b₁b₂_ne_0 : b.1 - b.2 ≠ 0 := by
         intro contr
         rw [ZFNat.sub_eq_zero_imp_le] at contr
-        rcases contr with contr | rfl
+        rcases contr with contr | eq
         · nomatch ZFNat.lt_irrefl <| ZFNat.lt_trans contr h'
-        · nomatch ZFNat.lt_irrefl h'
+        · rw [eq] at h'
+          nomatch ZFNat.lt_irrefl h'
       left
       exact ZFNat.mul_right_cancel_iff b₁b₂_ne_0 |>.mp this
   · rintro (h | h)
@@ -994,7 +989,7 @@ instance : PartialOrder ZFInt where
   lt_iff_le_not_ge := @lt_iff_le_not_ge
 
 instance : IsOrderedRing ZFInt where
-  add_le_add_left _ _ h z := (add_le_add_iff_left z).mpr h
+  add_le_add_left _ _ h z := add_le_add_left h z
   zero_le_one := Or.inl zero_lt_one
   mul_le_mul_of_nonneg_left a b := fun _ _ ↦ (mul_le_mul_left a · b)
   mul_le_mul_of_nonneg_right a h b c h' := by
