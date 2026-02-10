@@ -327,8 +327,8 @@ theorem induction {P : ZFNat → Prop} (n : ZFNat)
     simpa [hn, zero_in_Nat, nat_zero_eq] using zero
   · intro m hm hm'
     unfold P' at *
-    simp [hm] at hm'
-    simp [succ_mem_Nat' hm]
+    rw [dif_pos hm] at hm'
+    rw [dif_pos <| succ_mem_Nat' hm]
     exact succ ⟨m, hm⟩ hm'
 
 @[cases_eliminator]
@@ -654,8 +654,8 @@ def rec.{u} {motive : ZFNat → Sort u} (n : ZFNat)
     simpa [hn, zero_in_Nat, nat_zero_eq] using zero
   · intro m hm hm'
     unfold motive' at *
-    simp [hm] at hm'
-    simp [succ_mem_Nat' hm]
+    rw [dif_pos hm] at hm'
+    rw [dif_pos <| succ_mem_Nat' hm]
     exact succ ⟨m, hm⟩ hm'
 
 /--
@@ -790,7 +790,7 @@ theorem add_left_cancel {n m k : ZFNat} : n + m = n + k ↔ m = k := by
   induction n with
   | zero => simp only [zero_add]
   | succ n ih =>
-    simp [add_succ]
+    simp_rw [add_succ]
     apply Iff.intro
     · intro h
       exact ih.mp (succ_inj h)
@@ -1496,7 +1496,6 @@ theorem ZFNat.ofNat_inj {n m : ℕ} : (n : ZFNat) = (m : ZFNat) ↔ n = m where
       conv_rhs at h =>
         unfold Nat.cast NatCast.natCast
       unfold_projs at h
-      simp at h
       unfold Nat.unaryCast at h
       split at h
       · rfl
