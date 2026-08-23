@@ -3,7 +3,9 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Functions
+module
+
+public import ZFLean.Functions
 
 /-!
 # Set-level recursion on the natural numbers
@@ -18,7 +20,7 @@ is a unique `h ∈ Nat.funs X` with `h ∅ = x` and `h ∘ᶻ succFun = s ∘ᶻ
 `(Nat, ∅, succFun)` is a natural numbers object in the category of `ZFSet`s and `funs`.
 -/
 
-noncomputable section
+public noncomputable section
 
 namespace ZFSet
 

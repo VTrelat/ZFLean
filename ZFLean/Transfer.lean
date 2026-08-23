@@ -3,9 +3,12 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Equiv.Prod
-import Mathlib.Logic.Function.Iterate
+module
+
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Equiv.Prod
+public import Mathlib.Logic.Function.Iterate
+public meta import Lean.Elab.Tactic
 
 /-!
 # The `transfer` tactic
@@ -45,6 +48,8 @@ Transferring proceeds in three steps:
   resulting goal.
 -/
 
+public section
+
 universe u v
 
 /-- Simp set used by the `transfer` tactic to push an equivalence through a goal. Its lemmas
@@ -62,22 +67,27 @@ namespace ZFLean.Transfer
 
 open Lean Meta Elab Tactic
 
-/-! ### Lemmas used to push equivalences through a goal -/
+/-! ### Lemmas used to push equivalences through a goal
+
+These are an implementation detail of the tactic, but they have to be public: the tactic looks
+them up by name in the environment of the file it runs in, and a private declaration is not
+exported to importing modules at all.
+-/
 
 /-- Applying `Equiv.arrowCongr` is conjugating. -/
-private theorem arrowCongr_apply {α₁ α₂ β₁ β₂ : Sort*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
+theorem arrowCongr_apply {α₁ α₂ β₁ β₂ : Sort*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
     (f : α₁ → β₁) (x : α₂) : e₁.arrowCongr e₂ f x = e₂ (f (e₁.symm x)) := rfl
 
 /-- Applying the inverse of `Equiv.arrowCongr` is conjugating the other way round. This is
 `Equiv.arrowCongr_symm` followed by `arrowCongr_apply`, but as a single step: rewriting with
 `Equiv.arrowCongr_symm` alone would break the `E (E.symm x)` pattern that collapses an
 equation between functions. -/
-private theorem arrowCongr_symm_apply {α₁ α₂ β₁ β₂ : Sort*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
+theorem arrowCongr_symm_apply {α₁ α₂ β₁ β₂ : Sort*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
     (f : α₂ → β₂) (x : α₁) : (e₁.arrowCongr e₂).symm f x = e₂.symm (f (e₁ x)) := rfl
 
 /-- Iterating a conjugated function is conjugating the iterate: this is what makes a statement
 about `f^[n]` travel, `f` being a binder of type `α → α`. -/
-private theorem arrowCongr_symm_iterate {α β : Sort*} (e : α ≃ β) (f : β → β) (n : ℕ) (x : α) :
+theorem arrowCongr_symm_iterate {α β : Sort*} (e : α ≃ β) (f : β → β) (n : ℕ) (x : α) :
     ((e.arrowCongr e).symm f)^[n] x = e.symm (f^[n] (e x)) := by
   induction n generalizing x with
   | zero => exact (e.symm_apply_apply x).symm
@@ -87,29 +97,29 @@ private theorem arrowCongr_symm_iterate {α β : Sort*} (e : α ≃ β) (f : β 
     rfl
 
 /-- Applying `Equiv.prodCongr` is applying both components. -/
-private theorem prodCongr_apply {α₁ α₂ β₁ β₂ : Type*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
+theorem prodCongr_apply {α₁ α₂ β₁ β₂ : Type*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
     (p : α₁ × β₁) : e₁.prodCongr e₂ p = (e₁ p.1, e₂ p.2) := rfl
 
 /-- Applying the inverse of `Equiv.prodCongr` is applying both inverses. -/
-private theorem prodCongr_symm_apply {α₁ α₂ β₁ β₂ : Type*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
+theorem prodCongr_symm_apply {α₁ α₂ β₁ β₂ : Type*} (e₁ : α₁ ≃ α₂) (e₂ : β₁ ≃ β₂)
     (p : α₂ × β₂) : (e₁.prodCongr e₂).symm p = (e₁.symm p.1, e₂.symm p.2) := rfl
 
 /-- `Equiv.forall_congr_left`, with `p` explicit so that it can be used as a simp lemma. -/
-private theorem forallLift {α : Sort u} {β : Sort v} (e : α ≃ β) (p : α → Prop) :
+theorem forallLift {α : Sort u} {β : Sort v} (e : α ≃ β) (p : α → Prop) :
     (∀ x, p x) ↔ ∀ x, p (e.symm x) := e.forall_congr_left
 
 /-- `Equiv.exists_congr_left`, with `p` explicit so that it can be used as a simp lemma. -/
-private theorem existsLift {α : Sort u} {β : Sort v} (e : α ≃ β) (p : α → Prop) :
+theorem existsLift {α : Sort u} {β : Sort v} (e : α ≃ β) (p : α → Prop) :
     (∃ x, p x) ↔ ∃ x, p (e.symm x) := e.exists_congr_left
 
 /-- An equation in `α` is the equation between the images in `β`. -/
-private theorem eqLift {α : Sort u} {β : Sort v} (e : α ≃ β) (x y : α) :
+theorem eqLift {α : Sort u} {β : Sort v} (e : α ≃ β) (x y : α) :
     x = y ↔ e x = e y := (e.apply_eq_iff_eq).symm
 
 /-! ### Transporting the types of the binders -/
 
 /-- The source and target types of an equivalence. -/
-private def equivTypes (e : Expr) : MetaM (Expr × Expr) := do
+private meta def equivTypes (e : Expr) : MetaM (Expr × Expr) := do
   let t ← whnf (← inferType e)
   let some (α, β) := t.app2? ``Equiv
     | throwError "transfer: expected an equivalence, but{indentExpr e}\nhas type{indentExpr t}"
@@ -118,7 +128,7 @@ private def equivTypes (e : Expr) : MetaM (Expr × Expr) := do
 /-- Read a term as an equivalence: a `TransferEquiv` instance is unfolded, so that the
 equivalence appears under the name the lemmas of `transfer_simps` are stated with, and a bundled
 isomorphism (`≃+*`, `≃*`, `≃o`, …) is coerced to the equivalence underlying it. -/
-private def asEquiv (e : Expr) : MetaM Expr := do
+private meta def asEquiv (e : Expr) : MetaM Expr := do
   let e ← withReducibleAndInstances (whnf e)
   let t ← whnf (← inferType e)
   if (t.app2? ``Equiv).isSome then return e
@@ -129,13 +139,13 @@ private def asEquiv (e : Expr) : MetaM Expr := do
 /-- A copy of the equivalence with fresh universe metavariables, together with its source type.
 A universe polymorphic type may well occur at several universes in a single goal, each of them
 calling for its own copy. -/
-private def freshEquiv (eAbs : AbstractMVarsResult) : MetaM (Expr × Expr) := do
+private meta def freshEquiv (eAbs : AbstractMVarsResult) : MetaM (Expr × Expr) := do
   let (_, _, E) ← openAbstractMVarsResult eAbs
   return (E, (← equivTypes E).1)
 
 /-- Reads `t` as the source type of the equivalence, and returns the copy of the equivalence it
 is the source of. -/
-private def matchSource? (eAbs : AbstractMVarsResult) (t : Expr) : MetaM (Option Expr) := do
+private meta def matchSource? (eAbs : AbstractMVarsResult) (t : Expr) : MetaM (Option Expr) := do
   let (E, α) ← freshEquiv eAbs
   -- The heads are compared after unfolding the reducible definitions, so that an abbreviation
   -- such as `ZFNat` and its unfolding `↥Nat` are recognised as the same type. A subterm under a
@@ -149,7 +159,7 @@ private def matchSource? (eAbs : AbstractMVarsResult) (t : Expr) : MetaM (Option
   if ← withReducible <| isDefEq t α then return some E else return none
 
 /-- Does `t` mention the source type of the equivalence? -/
-private partial def mentionsSource (eAbs : AbstractMVarsResult) (t : Expr) : MetaM Bool := do
+private meta partial def mentionsSource (eAbs : AbstractMVarsResult) (t : Expr) : MetaM Bool := do
   if (← matchSource? eAbs t).isSome then return true
   match t with
   | .app f a => mentionsSource eAbs f <||> mentionsSource eAbs a
@@ -160,15 +170,16 @@ private partial def mentionsSource (eAbs : AbstractMVarsResult) (t : Expr) : Met
   | _ => return false
 
 /-- The equivalences built so far, each of them together with its source type. -/
-private abbrev CongrM := StateRefT (Array (Expr × Expr)) MetaM
+private meta abbrev CongrM := StateRefT (Array (Expr × Expr)) MetaM
 
 /-- Record an equivalence, unless one with the same source type is already known. -/
-private def remember (t E : Expr) : CongrM Unit :=
+private meta def remember (t E : Expr) : CongrM Unit :=
   modify fun congrs => if congrs.any (·.1 == t) then congrs else congrs.push (t, E)
 
 /-- The equivalence `t ≃ t[β/α]` transporting a type `t` built out of `α` to the same type built
 out of `β`, or `none` when `t` is built by anything else than arrows and products. -/
-private partial def congrEquiv (eAbs : AbstractMVarsResult) (t : Expr) : CongrM (Option Expr) := do
+private meta partial def congrEquiv (eAbs : AbstractMVarsResult) (t : Expr) :
+    CongrM (Option Expr) := do
   if let some E ← matchSource? eAbs t then
     remember t E
     return some E
@@ -188,7 +199,7 @@ private partial def congrEquiv (eAbs : AbstractMVarsResult) (t : Expr) : CongrM 
 /-- Record an equivalence for every occurrence of the source type inside `t`. A universe
 polymorphic type may occur at several universes in one goal, and each of them needs its own
 lifting lemmas. -/
-private partial def collectSources (eAbs : AbstractMVarsResult) (t : Expr) : CongrM Unit := do
+private meta partial def collectSources (eAbs : AbstractMVarsResult) (t : Expr) : CongrM Unit := do
   if let some E ← matchSource? eAbs t then remember t E
   match t with
   | .app f a => collectSources eAbs f; collectSources eAbs a
@@ -207,7 +218,7 @@ private partial def collectSources (eAbs : AbstractMVarsResult) (t : Expr) : Con
 
 /-- The lemmas lifting the equations and the binders of type `t` along `E : t ≃ t'`. They are of
 no use, and would loop, when `t` and `t'` are the same type. -/
-private def liftings (t E : Expr) : MetaM (Array Expr) := do
+private meta def liftings (t E : Expr) : MetaM (Array Expr) := do
   let (α, β) ← equivTypes E
   if ← withNewMCtxDepth (isDefEq α β) then return #[]
   let lift (n : Name) (x : Expr) : MetaM Expr := do
@@ -218,7 +229,7 @@ private def liftings (t E : Expr) : MetaM (Array Expr) := do
     return #[eq, ← lift ``forallLift p, ← lift ``existsLift p]
 
 /-- The simp set pushing the equivalences of `congrs` through a goal. -/
-private def transferTheorems (congrs : Array (Expr × Expr)) : MetaM SimpTheorems := do
+private meta def transferTheorems (congrs : Array (Expr × Expr)) : MetaM SimpTheorems := do
   let some ext ← getSimpExtension? `transfer_simps
     | throwError "transfer: the `transfer_simps` simp set is not available"
   let mut thms ← ext.getTheorems
@@ -235,7 +246,7 @@ private def transferTheorems (congrs : Array (Expr × Expr)) : MetaM SimpTheorem
 
 /-- Replace the leading binder `∀ (x : α), p x` of `g` by `∀ (y : β), p (E.symm y)`, where
 `E : α ≃ β`. -/
-private def transferBinder (g : MVarId) (E : Expr) : MetaM MVarId := g.withContext do
+private meta def transferBinder (g : MVarId) (E : Expr) : MetaM MVarId := g.withContext do
   let tgt ← instantiateMVars (← g.getType)
   let .forallE n d body bi := tgt
     | throwError "transfer: expected a `∀` goal, but got{indentExpr tgt}"
@@ -252,7 +263,8 @@ private def transferBinder (g : MVarId) (E : Expr) : MetaM MVarId := g.withConte
   return g'.mvarId!
 
 /-- Transfer the main goal along `e`, then run `tacs` on the transferred goal. -/
-def transferGoal (e : Expr) (tacs : TSyntax ``Parser.Tactic.tacticSeq) : TacticM Unit := do
+private meta def transferGoal (e : Expr) (tacs : TSyntax ``Parser.Tactic.tacticSeq) :
+    TacticM Unit := do
   let e ← asEquiv e
   let (α, _) ← equivTypes e
   let eAbs ← abstractMVars e
@@ -371,3 +383,5 @@ elab_rules : tactic
     transferGoal (← instantiateMVars e) tacs
 
 end ZFLean.Transfer
+
+end

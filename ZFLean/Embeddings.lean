@@ -3,7 +3,9 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Functions
+module
+
+public import ZFLean.Functions
 
 /-!
 # Embeddings between ZF sets
@@ -12,6 +14,8 @@ This file defines embeddings between `ZFSet`s as injective functions and establi
 their basic properties: reflexivity, transitivity, and existence of embeddings between
 singletons and pairs.
 -/
+
+public section
 
 namespace ZFSet
 section Embeddings
@@ -137,3 +141,5 @@ theorem embedding_trans {A B C : ZFSet} (hAB : A ↪ᶻ B) (hBC : B ↪ᶻ C) : 
 
 end Embeddings
 end ZFSet
+
+end

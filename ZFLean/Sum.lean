@@ -3,10 +3,12 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
+module
+
 import ZFLean.Basic
 import ZFLean.Booleans
 import ZFLean.Integers
-import ZFLean.Functions
+public import ZFLean.Functions
 
 /-!
 # Disjoint sums and options over ZF sets
@@ -17,9 +19,11 @@ constructors, eliminators, and an equivalence to the type-level sum. It also dev
 functions to options.
 -/
 
+public section
+
 namespace ZFSet
 
-def Sum (A B : ZFSet) :=
+@[expose] def Sum (A B : ZFSet) :=
   {x // x ∈ (ZFSet.prod { ZFBool.false.val } A) ∪ (ZFSet.prod { ZFBool.true.val } B)}
 infixr:50 " ⊎ " => Sum
 
@@ -212,7 +216,7 @@ Everything above states the disjoint sum at the *type* level: `A ⊎ B` is a Lea
 composition is `ZFSet.composition`. -/
 
 /-- The underlying `ZFSet` carrier of the disjoint sum: `A ⊎ B` is `{x // x ∈ toZFSet A B}`. -/
-def toZFSet (A B : ZFSet) : ZFSet :=
+@[expose] def toZFSet (A B : ZFSet) : ZFSet :=
   (ZFSet.prod { ZFBool.false.val } A) ∪ (ZFSet.prod { ZFBool.true.val } B)
 
 theorem sum_eq_subtype_toZFSet {A B : ZFSet} : (A ⊎ B) = {x // x ∈ toZFSet A B} := rfl
@@ -429,8 +433,7 @@ end Sum
 
 /-- `Option S` is the disjoint sum `{∅} ⊎ S`. Marked reducible so that the two spellings
 stay interchangeable under `rw` and `simp`. -/
-@[reducible]
-def Option (S : ZFSet) := {∅} ⊎ S
+@[reducible, expose] def Option (S : ZFSet) := {∅} ⊎ S
 
 instance {T : ZFSet} : Nonempty (Option T) := ⟨Sum.inl ⟨∅, mem_singleton.mpr rfl⟩⟩
 
@@ -554,7 +557,7 @@ theorem ne_none_is_some {T : ZFSet} (x : Option T) : x ≠ none → ∃ y, x = s
   · contradiction
   · assumption
 
-theorem into.inj {T : ZFSet} :
+private theorem into.inj {T : ZFSet} :
     Function.Injective (into : Option T → _root_.Option {x // x ∈ T}) := by
   intro x y heq
   unfold into at heq
@@ -567,7 +570,7 @@ theorem into.inj {T : ZFSet} :
     rw [Classical.choose_spec px, Classical.choose_spec py]
     congr
 
-theorem into.surj {T : ZFSet} :
+private theorem into.surj {T : ZFSet} :
     Function.Surjective (into : Option T → _root_.Option {x // x ∈ T}) := by
   intro y
   unfold into
@@ -582,7 +585,7 @@ theorem into.surj {T : ZFSet} :
     · generalize_proofs pv
       rw [← some.injEq.mp <| Classical.choose_spec pv]
 
-theorem into.bij {T : ZFSet} :
+private theorem into.bij {T : ZFSet} :
   Function.Bijective (into : Option T → _root_.Option {x // x ∈ T}) := ⟨into.inj, into.surj⟩
 
 noncomputable def EmbeddingZFOptionOption {T : ZFSet} : Option T ↪ _root_.Option {x // x ∈ T} where
@@ -604,7 +607,7 @@ private def outof {T : ZFSet} : _root_.Option {x // x ∈ T} → Option T
   | .some ⟨x, hx⟩ => some ⟨x, hx⟩
   | .none => none
 
-theorem outof.inj {T : ZFSet} :
+private theorem outof.inj {T : ZFSet} :
     Function.Injective (outof : _root_.Option {x // x ∈ T} → Option T) := by
   intro x y heq
   cases x <;> cases y <;> unfold outof at heq
@@ -632,7 +635,7 @@ theorem outof.inj {T : ZFSet} :
     have := Subtype.val_inj.mp <| Subtype.mk_eq_mk.mp <| Subtype.val_inj.mp heq.2
     congr
 
-theorem outof.surj {T : ZFSet} :
+private theorem outof.surj {T : ZFSet} :
     Function.Surjective (outof : _root_.Option {x // x ∈ T} → Option T) := by
   intro y
   unfold outof
@@ -640,7 +643,7 @@ theorem outof.surj {T : ZFSet} :
   · exists .none
   · exists .some x
 
-theorem outof.bij {T : ZFSet} :
+private theorem outof.bij {T : ZFSet} :
   Function.Bijective (outof : _root_.Option {x // x ∈ T} → Option T) := ⟨outof.inj, outof.surj⟩
 
 def EmbeddingOptionZFOption {T : ZFSet} : _root_.Option {x // x ∈ T} ↪ Option T where
@@ -784,3 +787,5 @@ theorem flift_bijective {f A B : ZFSet} (hf : IsFunc A B f) :
 end Option
 
 end ZFSet
+
+end

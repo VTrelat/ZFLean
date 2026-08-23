@@ -3,10 +3,13 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Def
-import ZFLean.TransferAlgebra
-import Mathlib.Algebra.Ring.Defs
+module
+
+public import ZFLean.Def
+public import ZFLean.TransferAlgebra
+public import Mathlib.Algebra.Ring.Defs
 import Mathlib.Tactic.Ring
+import Mathlib.Algebra.Ring.Divisibility.Basic
 
 /-! # ZFC Natural numbers
 
@@ -24,7 +27,7 @@ various properties and usual arithmetic operations on natural numbers.
 
 -/
 
-noncomputable section
+public noncomputable section
 
 namespace ZFSet
 
@@ -74,7 +77,7 @@ private theorem some_inf_mem_powerset_some_inf_ind :
   mem_sep.mpr ⟨mem_powerset.mpr fun _ => id, inductive_some_inf⟩
 
 /-- `Nat` is an infinite inductive set. -/
-theorem Nat_subset_some_inf : Nat ⊆ some_inf := by
+private theorem Nat_subset_some_inf : Nat ⊆ some_inf := by
   intro n hn
   unfold Nat at hn
   rw [mem_sInter] at hn
@@ -121,11 +124,11 @@ lemma zero_mem_inductive {a} (h : inductive_set a) : ↑(0 : ZFNat).val ∈ a :=
 theorem insert_mem_inductive {a n} (h : inductive_set a) (h' : n ∈ a) : insert n n ∈ a :=
   h.right n h'
 
-theorem some_inf_powerset_sep_inductive_nonempty : (some_inf.powerset.sep inductive_set).Nonempty :=
+private theorem some_inf_powerset_sep_inductive_nonempty : (some_inf.powerset.sep inductive_set).Nonempty :=
   ⟨some_inf, some_inf_mem_powerset_some_inf_ind⟩
 
 /-- Any inductive set is a subset of `some_inf`. -/
-theorem inductive_subset_some_inf_contains_Nat {a} (h : inductive_set a) (h' : a ⊆ some_inf) :
+private theorem inductive_subset_some_inf_contains_Nat {a} (h : inductive_set a) (h' : a ⊆ some_inf) :
   Nat ⊆ a := by
   intro n hn
   unfold Nat at hn
@@ -192,7 +195,7 @@ theorem Nat_eq_of_inductive {T : ZFSet} (hT : inductive_set T) :
 The successor function `succ` is build from the insertion of a set into itself embedded into the
 `ZFNat` type.
 -/
-def succ (n : ZFNat) : ZFNat :=
+@[expose] def succ (n : ZFNat) : ZFNat :=
   let ⟨n, h⟩ := n
   have p : insert n n ∈ Nat := succ_mem_Nat' h
   ⟨insert n n, p⟩
@@ -534,7 +537,7 @@ theorem pred_in_Nat' ⦃x : ZFSet⦄ (h : x ∈ Nat) : (⋃₀ x : ZFSet) ∈ Na
     rw [sUnion_insert_nat] <;> assumption
 
 /-- The predecessor function on natural numbers, defined directly as the union of a set. -/
-def pred (x : ZFNat) : ZFNat := x.map sUnion pred_in_Nat'
+@[expose] def pred (x : ZFNat) : ZFNat := x.map sUnion pred_in_Nat'
 
 theorem pred_eq (n : ZFNat) : pred n = ⟨⋃₀ n.val, pred_in_Nat' n.property⟩ := rfl
 
@@ -626,8 +629,7 @@ theorem rec'_succ.{u} {motive : ZFSet → Sort u} (n : ZFSet) (n_Nat : n ∈ Nat
 The recursion principle for natural numbers. This recursor allows inductive
 definitions over natural numbers to be defined in a more natural way.
 -/
-@[induction_eliminator]
-def rec.{u} {motive : ZFNat → Sort u} (n : ZFNat)
+@[induction_eliminator, expose] def rec.{u} {motive : ZFNat → Sort u} (n : ZFNat)
   (zero : motive 0) (succ : Π x, motive x → motive (succ x)) : motive n := by classical
   let ⟨n, hn⟩ := n
   let motive' (x : ZFSet) := if hx : x ∈ Nat then motive ⟨x, hx⟩ else PUnit

@@ -3,7 +3,13 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import Mathlib.CategoryTheory.Category.Basic
+module
+
+public meta import Lean.LabelAttribute
+public import Lean.LabelAttribute
+-- re-exported: the macros below expand to `sorry_if_sorry` at the *use* site, so the
+-- tactic has to be in scope wherever `zrel`/`zpfun`/`zfun`/`zdom` are called.
+public import Mathlib.CategoryTheory.Category.Basic
 import ZFLean.Transfer
 
 /-!
@@ -13,6 +19,8 @@ This file registers label attributes and defines the `zrel`, `zpfun`, `zfun`, an
 tactics used to discharge relation, partial-function, function, and domain-membership side
 goals.
 -/
+
+public meta section
 
 register_label_attr zrel
 register_label_attr zpfun
@@ -76,3 +84,5 @@ macro "zdom" : tactic => `(tactic|
   | solve_by_elim using zdom, zfun, zpfun
   | solve_by_elim using zdom, zdom_conv, zfun, zpfun)
 end ZFTactics
+
+end

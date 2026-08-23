@@ -3,7 +3,9 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import Mathlib.SetTheory.ZFC.Basic
+module
+
+public import Mathlib.SetTheory.ZFC.Basic
 
 /-!
 # Basic ZFSet lemmas
@@ -12,7 +14,7 @@ This file develops elementary lemmas about `ZFSet`, including characterizations 
 empty set, separation, and the behavior of unions and intersections.
 -/
 
-noncomputable section
+public noncomputable section
 
 namespace ZFSet
 

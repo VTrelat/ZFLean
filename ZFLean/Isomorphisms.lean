@@ -3,7 +3,14 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Functions
+module
+
+public import ZFLean.Functions
+-- The Cantor–Bernstein and `funs` proofs below unfold `fapply`, which is deliberately
+-- left unexposed (it is built on `Classical.choose`, and exposing it makes `zdom`'s
+-- search blow up project-wide). `import all` opens the bodies in this file's private
+-- scope only.
+import all ZFLean.Functions
 
 /-!
 # Isomorphisms of ZF sets
@@ -12,6 +19,8 @@ This file develops the theory of isomorphisms (bijections) between ZF sets, incl
 Cantor–Bernstein theorem, isomorphism stability under products, powersets and function spaces,
 and currying/uncurrying.
 -/
+
+public section
 
 namespace ZFSet
 
@@ -1561,3 +1570,5 @@ end Lemmas
 end Isomorphisms
 
 end ZFSet
+
+end

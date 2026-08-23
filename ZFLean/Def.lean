@@ -3,7 +3,9 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Basic
+module
+
+public import ZFLean.Basic
 import Mathlib.SetTheory.ZFC.Class
 import Mathlib.Algebra.Ring.Basic
 import Mathlib.SetTheory.Cardinal.SchroederBernstein
@@ -19,7 +21,7 @@ This file develops basic definitions and lemmas over `ZFSet`, including transiti
 inductive sets, the symmetric difference, and assorted membership and monotonicity results.
 -/
 
-noncomputable section
+public noncomputable section
 
 namespace ZFSet
 
@@ -36,7 +38,7 @@ theorem insert_def {x y : ZFSet} : insert x y = {x} ∪ y := by
 A set `x` is transitive if every element of `x` is a subset of `x`:
 `∀ y ∈ x, y ⊆ x`.
 -/
-def transitive (x : ZFSet) := ∀ y ∈ x, y ⊆ x
+@[expose] def transitive (x : ZFSet) := ∀ y ∈ x, y ⊆ x
 
 notation "ω" => omega
 
@@ -46,7 +48,7 @@ under successor.
 
 *The "successor" of a set `x` is defined as the insertion of `x` into itself.*
 -/
-def inductive_set (E : ZFSet) : Prop := ∅ ∈ E ∧ ∀ n, n ∈ E → insert n n ∈ E
+@[expose] def inductive_set (E : ZFSet) : Prop := ∅ ∈ E ∧ ∀ n, n ∈ E → insert n n ∈ E
 
 lemma prod_nonempty {x y} : x ≠ ∅ → y ≠ ∅ → ZFSet.prod x y ≠ ∅ := by classical
   intro hx hy h'

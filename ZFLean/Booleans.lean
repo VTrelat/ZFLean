@@ -3,8 +3,10 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Def
-import ZFLean.Transfer
+module
+
+public import ZFLean.Def
+public import ZFLean.Transfer
 
 /-!
 # Boolean algebra on `ZFSet`
@@ -24,7 +26,7 @@ It defines the following operations:
 
 -/
 
-noncomputable section
+public noncomputable section
 
 namespace ZFSet
 section Booleans
@@ -391,7 +393,7 @@ abbrev or_intro p q := or_iff p q |>.mpr
 
 open Classical in
 /-- Conversion of `ZFBool` to `Lean.Bool`. -/
-def toBool : ZFBool → Bool
+@[expose] def toBool : ZFBool → Bool
   | ⟨b, hb⟩ =>
     if h : b = zftrue then Bool.true
     else if h' : b = zffalse then Bool.false
@@ -451,7 +453,7 @@ theorem not_bot_iff_top {P : ZFBool} : P ≠ ⊥ ↔ P = ⊤ := by
     nomatch zftrue_ne_zffalse h
 
 /-- Conversion of `Lean.Bool` to `ZFBool` -/
-def ofBool : Bool → ZFBool
+@[expose] def ofBool : Bool → ZFBool
   | .true  => ⟨zftrue, ZFBool.zftrue_mem_𝔹⟩
   | .false => ⟨zffalse, ZFBool.zffalse_mem_𝔹⟩
 
@@ -517,7 +519,7 @@ theorem ofBool_decide_eq_false_iff {P : Prop} [Decidable P] : ofBool (decide P) 
       rw [Bool.decide_iff] at hP
       contradiction
 
-def equivBool : ZFBool ≃ Bool where
+@[expose] def equivBool : ZFBool ≃ Bool where
   toFun := toBool
   invFun := ofBool
   left_inv := of_Bool_toBool
@@ -649,7 +651,7 @@ the proposition `p = ⊤`. Under this reading the connectives of `ZFBool` are th
 /-- The classical equivalence between `ZFBool` and `Prop`: `p` stands for the proposition that
 `p` is `⊤`. Not an instance, `Bool` being the registered target of `ZFBool`; pass it explicitly,
 as `transfer ZFBool → Prop using ZFBool.equivProp`. -/
-noncomputable def equivProp : ZFBool ≃ Prop := equivBool.trans Equiv.propEquivBool.symm
+@[expose] noncomputable def equivProp : ZFBool ≃ Prop := equivBool.trans Equiv.propEquivBool.symm
 
 theorem equivProp_apply (p : ZFBool) : equivProp p = (p.toBool = Bool.true) := rfl
 

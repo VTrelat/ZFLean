@@ -3,12 +3,14 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Naturals
+module
+
+public import ZFLean.Naturals
 import ZFLean.TransferAlgebra
 import Mathlib.Algebra.EuclideanDomain.Basic
-import Mathlib.Algebra.EuclideanDomain.Int
+public import Mathlib.Algebra.EuclideanDomain.Int
 import Mathlib.Algebra.Order.Ring.Cast
-import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
 import Mathlib.Algebra.Order.Group.Defs
 
 /-! # ZFC Integers
@@ -26,6 +28,8 @@ contained in `ZFSet.Int`. The bijection is built directly from the projection fu
 set of bijections — so the induced order on `{x // x ∈ ZFSet.Int}` is well-defined and concrete
 inequalities like `0 < 1` are provable.
 -/
+
+public section
 
 namespace ZFSet
 
@@ -59,7 +63,7 @@ abbrev ZFInt := Quotient ZFSet.instSetoidZFNatZFNat
 
 namespace ZFInt
 
-def mk : ZFNat × ZFNat → ZFInt := Quotient.mk''
+@[expose] def mk : ZFNat × ZFNat → ZFInt := Quotient.mk''
 
 @[simp]
 theorem mk_eq (x : ZFNat × ZFNat) : @Eq ZFInt ⟦x⟧ (mk x) := rfl
@@ -269,16 +273,16 @@ theorem add_eq_sub_iff {a b c : ZFInt} : a + b = c ↔ a = c - b where
   mp := fun h => by rw [← h, add_sub_cancel]
   mpr := fun h => by rw [h, sub_add_cancel]
 
-private noncomputable abbrev nsmul : ℕ → ZFInt → ZFInt
+noncomputable abbrev nsmul : ℕ → ZFInt → ZFInt
   | 0, _ => 0
   | n+1, m => m + nsmul n m
 
-private noncomputable abbrev zsmul (n : ℤ) (x : ZFInt) : ZFInt :=
+noncomputable abbrev zsmul (n : ℤ) (x : ZFInt) : ZFInt :=
   match n with
   | .ofNat n => nsmul n x
   | .negSucc n => -nsmul (n+1) x
 
-private theorem mul_wf {a b c d s t u v : ZFNat}
+theorem mul_wf {a b c d s t u v : ZFNat}
   (h₁ : ZFSet.zrel (a, b) (s, t)) (h₂ : ZFSet.zrel (c, d) (u, v)) :
   ZFSet.zrel (a * c + b * d, a * d + b * c) (s * u + t * v, s * v + t * u) := by
   dsimp [ZFSet.zrel] at *
@@ -1732,3 +1736,5 @@ end Transfer
 
 end Integers
 end ZFSet
+
+end

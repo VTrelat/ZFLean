@@ -3,9 +3,11 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Rationals
-import ZFLean.Booleans
-import ZFLean.Tactics
+module
+
+public import ZFLean.Rationals
+public import ZFLean.Booleans
+public import ZFLean.Tactics
 
 /-!
 # Functions and relations on ZF sets
@@ -14,6 +16,8 @@ This file develops binary relations, partial and total functions, composition, i
 injectivity/surjectivity/bijectivity, permutations, lambda abstraction and function application
 on the encoded `ZFSet` universe, together with order-theoretic notions on subsets.
 -/
+
+public section
 
 namespace ZFSet
 set_option linter.unusedVariables false
@@ -116,7 +120,7 @@ theorem funs.nonempty {A B : ZFSet} (hB : B ≠ ∅) : ZFSet.funs A B ≠ ∅ :=
 `IsPFunc f A B` is the assertion that `f` is a partial function from `A` to `B`,
 i.e. that if `pair x y ∈ f` and `pair x z ∈ f` then `y = z`.
 -/
-def IsPFunc (f A B : ZFSet) := f ⊆ prod A B ∧ ∀ x y :
+@[expose] def IsPFunc (f A B : ZFSet) := f ⊆ prod A B ∧ ∀ x y :
   ZFSet, pair x y ∈ f → ∀ z, pair x z ∈ f → y = z
 
 -- syntax "zpfun" : tactic
@@ -281,13 +285,13 @@ theorem is_func_of_pfunc (f : ZFSet) {A B} (hf : f.IsPFunc A B) : IsFunc f.Dom B
     exact ⟨u_dom, yB⟩
   · exact uniq
 
-def IsInjective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
+@[expose] def IsInjective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
   ∀ x y z, x ∈ A → y ∈ A → z ∈ B → x.pair z ∈ f → y.pair z ∈ f → x = y
 
-def IsSurjective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
+@[expose] def IsSurjective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
   ∀ y ∈ B, ∃ x ∈ A, x.pair y ∈ f
 
-def IsBijective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
+@[expose] def IsBijective (f : ZFSet) {A B : ZFSet} (hf : IsFunc A B f := by zfun) :=
   f.IsInjective ∧ f.IsSurjective
 
 theorem IsInjective.ofBijective {f A B C : ZFSet} {hf : IsFunc A B f}
@@ -423,7 +427,7 @@ If `f : A → B` and `g : B → C` are functions, then `composition g f` is the 
 from `A` to `C` defined by `composition g f (x, z) = (x, y)` where `y` is such that
 `(x, y) ∈ f` and `(y, z) ∈ g`.
 -/
-def composition (g f : ZFSet) (A B C : ZFSet) : ZFSet :=
+@[expose] def composition (g f : ZFSet) (A B C : ZFSet) : ZFSet :=
   (A.prod C).sep fun xz =>
     ∃ (x z : ZFSet), xz = x.pair z ∧ ∃ y ∈ B, x.pair y ∈ f ∧ y.pair z ∈ g
 
@@ -867,22 +871,22 @@ declare_syntax_cat funz_binder
 syntax (name := identZBinder) Term.ident : funz_binder
 syntax (name := tupleZBinder) "(" funz_binder ", " funz_binder ")" : funz_binder
 
-def funZBinder : Parser := categoryParser `funz_binder 0
+meta def funZBinder : Parser := categoryParser `funz_binder 0
 
-def funZType : Parser :=
+meta def funZType : Parser :=
   ":" >> ppSpace >> termParser leadPrec >> ppSpace >>
     unicodeSymbol "→" "->" >> ppSpace >> termParser leadPrec
 
-def funZAlts : Parser :=
+meta def funZAlts : Parser :=
   "|" >> ppSpace >> funZBinder >> ppSpace >> unicodeSymbol "↦" "=>" >> ppSpace >> termParser
 
-def basicFunZ : Parser := leading_parser (withAnonymousAntiquot := false)
+meta def basicFunZ : Parser := leading_parser (withAnonymousAntiquot := false)
   ppGroup (ppSpace >> funZType) >> funZAlts
 
-@[term_parser] def funZ := leading_parser:maxPrec
+@[term_parser] meta def funZ := leading_parser:maxPrec
   ppAllowUngrouped >> unicodeSymbol "λᶻ" "funᶻ" >> basicFunZ
 
-partial def interpZBinder (x_def : TSyntax `term) (e : TSyntax `term) :
+meta partial def interpZBinder (x_def : TSyntax `term) (e : TSyntax `term) :
   TSyntax `funz_binder → MacroM (TSyntax `term)
   | `(funz_binder| $x:ident) => `(term| letI $x := $x_def; $e)
   | `(funz_binder| ($x, $y)) => do
@@ -2883,3 +2887,5 @@ theorem fprod_injective_of_injective {A B A' B' φ ψ : ZFSet}
 end Auxiliary
 
 end ZFSet
+
+end

@@ -3,13 +3,18 @@ Copyright (c) 2025 Vincent Trélat. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Vincent Trélat
 -/
-import ZFLean.Transfer
-import Mathlib.Algebra.Ring.Equiv
+module
+
+-- re-exported: this file is the entry point for making `transfer` work on an
+-- algebraic type, so importing it must bring `TransferEquiv`, `transfer_simps`
+-- and the tactic itself along.
+public import ZFLean.Transfer
+public import Mathlib.Algebra.Ring.Equiv
 import Mathlib.Algebra.Ring.Divisibility.Basic
 import Mathlib.Algebra.GroupWithZero.Units.Lemmas
 import Mathlib.Data.Nat.Cast.Basic
 import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Rat.Cast.Defs
+public import Mathlib.Data.Rat.Cast.Defs
 import Mathlib.Order.Hom.Basic
 
 /-!
