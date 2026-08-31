@@ -7,6 +7,7 @@ module
 
 public import ZFLean.Integers
 import ZFLean.TransferAlgebra
+public import ZFLean.Quotient
 import Mathlib.Data.Rat.Cast.Order
 import Mathlib.Tactic.Ring
 
@@ -887,6 +888,118 @@ attribute [transfer_simps ←] equivRat_le equivRat_lt
 end Transfer
 
 end ZFRat
+
+/- The carrier set of Rat, which is equivalent to the carrier type of ZFRat -/
+noncomputable def zf_qcarrier := Int.prod (Int \ {(0 : ZFInt).into.val} )
+noncomputable def zf_qcarrier_equiv_qcarrier :
+  zf_qcarrier ≃ ZFInt × ZFInt'  :=
+  Equiv.trans (@ZFQuotient.equivZFProdProd Int (Int \ {(0 : ZFInt).into.val} )) <|
+  Equiv.prodCongr ({
+    toFun := ZFInt.outof
+    invFun := ZFInt.into
+    left_inv := ZFInt.into_outof
+    right_inv := ZFInt.outof_into
+  }) ({
+    toFun := fun ⟨z, hz⟩ => ⟨ZFInt.outof ⟨z, sdiff_subset hz⟩, by
+      have hz' := hz
+      rw [mem_sdiff, mem_singleton] at hz
+      obtain not_zero := hz.right
+      intro this
+      apply congr_arg ZFInt.into at this
+      rw [ZFInt.into_outof, Subtype.ext_iff] at this
+      exact not_zero this
+    ⟩
+    invFun := fun ⟨z, nz ⟩ => ⟨ZFInt.into z, by
+      rw [mem_sdiff, mem_singleton]
+      exists (ZFInt.into z).prop
+      intro h
+      rw [←Subtype.ext_iff] at h
+      apply ZFInt.into_inj at h
+      exact nz h
+    ⟩
+    left_inv := by
+      intro ⟨z, hz⟩
+      dsimp only
+      rw [Subtype.ext_iff]
+      change ZFInt.into _ = z
+      rw [ZFInt.into_outof]
+    right_inv := by
+      intro ⟨z, nz⟩
+      rw [Subtype.ext_iff]
+      dsimp only
+      apply ZFInt.into_inj
+      rw [ZFInt.into_outof, Subtype.ext_iff]
+  })
+
+/- The relation equivalence of Rat, which is equivalent to equivalence relation of ZFRat -/
+open Classical in
+@[expose]
+noncomputable def zf_qrel : ZFSet := (zf_qcarrier.prod zf_qcarrier).sep fun pq =>
+  if h : pq ∈ zf_qcarrier.prod zf_qcarrier then
+    let h := mem_prod.mp h
+    let pn : ZFInt := ZFInt.outof ⟨pq.π₁.π₁, by
+      obtain ⟨p,hp, _,_, rfl⟩ := h
+      rw [zf_qcarrier, mem_prod] at hp
+      obtain ⟨pn, hpn, pd, hpd, rfl⟩ := hp
+      rwa [π₁_pair,π₁_pair]
+    ⟩
+    let pd : ZFInt := ZFInt.outof ⟨pq.π₁.π₂, by
+      obtain ⟨p,hp, _,_, rfl⟩ := h
+      rw [zf_qcarrier, mem_prod] at hp
+      obtain ⟨pn, hpn, pd, hpd, rfl⟩ := hp
+      rw [π₁_pair,π₂_pair]
+      exact sdiff_subset hpd
+    ⟩
+    let qn : ZFInt := ZFInt.outof ⟨pq.π₂.π₁, by
+      obtain ⟨p,hp, q, hq, rfl⟩ := h
+      rw [zf_qcarrier, mem_prod] at hq
+      obtain ⟨pn, hpn, pd, hpd, rfl⟩ := hq
+      rwa [π₂_pair,π₁_pair]
+    ⟩
+    let qd : ZFInt := ZFInt.outof ⟨pq.π₂.π₂, by
+      obtain ⟨p,hp, q, hq, rfl⟩ := h
+      rw [zf_qcarrier, mem_prod] at hq
+      obtain ⟨pn, hpn, pd, hpd, rfl⟩ := hq
+      rw [π₂_pair,π₂_pair]
+      exact sdiff_subset hpd
+    ⟩
+    pn * qd = pd * qn
+  else False
+
+open Classical in
+theorem zf_qrel_equiv_qrel :
+    zf_qcarrier.equivZFRelation ⟨zf_qrel, sep_subset⟩ =
+    (Function.onFun ZFSet.qrel zf_qcarrier_equiv_qcarrier) := by
+  ext x y
+  rw [equivZFRelation_related, Function.onFun, ZFSet.qrel]
+  dsimp only
+  rw [zf_qrel, mem_sep]
+  conv =>
+    enter [1, 1]
+    discharge => rw [pair_mem_prod] ; exact ⟨x.prop, y.prop⟩
+  rw [true_and, dif_pos <| pair_mem_prod.mpr ⟨x.prop, y.prop⟩]
+  dsimp only
+  rw [←propext_iff]
+  congr <;> simp only [π₁_pair, π₂_pair]
+
+theorem zf_qrel_eq : zf_qrel.is_rel_equivalence sep_subset :=  by
+  apply zf_qcarrier.equivZFRelation_Equivalence ⟨zf_qrel, sep_subset⟩ |>.mp
+  rw [zf_qrel_equiv_qrel]
+  exact Equivalence.comap ZFSet.qrel_eq zf_qcarrier_equiv_qcarrier.toFun
+
+/- The set of Rational numbers -/
+noncomputable def Rat : ZFSet := Int.prod (Int \ {(0 : ZFInt).into.val} ) |>.ZFQuotient zf_qrel
+
+noncomputable def equivRatZFRat : Rat ≃ ZFRat :=
+  Equiv.trans
+  (@ZFQuotient.equivZFQuotient zf_qcarrier zf_qrel sep_subset zf_qrel_eq)
+  (Quotient.congr zf_qcarrier_equiv_qcarrier (by
+    unfold ZFSet.instSetoidZFIntZFInt' ZFQuotient.toSetoid
+    dsimp only
+    intro x y
+    rw [zf_qrel_equiv_qrel]
+  ))
+
 end Rationals
 end ZFSet
 
