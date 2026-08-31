@@ -1385,17 +1385,9 @@ noncomputable def uncurrify {A B C : ZFSet} (g : ZFSet)
   (hg : A.IsFunc (B.funs C) g := by zfun) : ZFSet :=
   λᶻ : (A.prod B) → C
      | hab : (a, b) ↦
-                have hab : a ∈ A ∧ b ∈ B := by
-                  rwa [pair_eta hab, pair_mem_prod] at hab
-                let f := @ᶻg ⟨a, by
-                    rw [is_func_dom_eq hg]
-                    exact hab.1
-                  ⟩
+                let f := @ᶻg ⟨a, by zdom⟩
                 have hf := mem_funs.mp f.2
-                @ᶻf ⟨b, by
-                    rw [is_func_dom_eq hf]
-                    exact hab.2
-                  ⟩
+                @ᶻf ⟨b, by zdom⟩
 
 @[zfun]
 theorem uncurrify_is_func {A B C : ZFSet} (g : ZFSet)

@@ -93,7 +93,7 @@ theorem recFun_mem_funs {X : ZFSet} {x s : ZFSet} (hx : x ∈ X) (hs : IsFunc X 
 theorem fapply_recFun {X : ZFSet} {x s : ZFSet} (hx : x ∈ X) (hs : IsFunc X X s)
     {n : ZFSet} (hn : n ∈ Nat) :
     fapply (recFun x s hx hs) (recFun_is_pfunc hx hs)
-        ⟨n, by rw [is_func_dom_eq (recFun_is_func hx hs)]; exact hn⟩
+        ⟨n, by zdom⟩
       = recVal x s hx hs ⟨n, hn⟩ := by
   have key : n.pair (recVal x s hx hs ⟨n, hn⟩).val ∈ recFun x s hx hs := by
     rw [recFun, lambda_spec]
@@ -124,7 +124,7 @@ theorem recFun_comp_succFun {X : ZFSet} {x s : ZFSet} (hx : x ∈ X) (hs : IsFun
       ⟨n, by zdom⟩).val = insert n n :=
     congrArg Subtype.val (fapply_succFun hn)
   have hrec : (fapply (recFun x s hx hs) (recFun_is_pfunc hx hs)
-      ⟨n, by rw [is_func_dom_eq (recFun_is_func hx hs)]; exact hn⟩).val
+      ⟨n, by zdom⟩).val
       = (recVal x s hx hs ⟨n, hn⟩).val :=
     congrArg Subtype.val (fapply_recFun hx hs hn)
   simp only [hsucc, hrec]

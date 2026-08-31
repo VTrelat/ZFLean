@@ -8,4 +8,4 @@ public import ZFLean.Sum
 public import ZFLean.Embeddings
 public import ZFLean.Isomorphisms
 public import ZFLean.Tactics
--- import ZFLean.Examples
+import ZFLean.Examples

@@ -52,25 +52,34 @@ set_option hygiene false
 -- discharged instantly instead of sending `solve_by_elim` on a hopeless search. In the released
 -- 0-sorry artifact it never fires; it only matters while a development is in progress.
 
+-- Every search runs under `with_reducible`. The seeds' conclusions are membership and
+-- well-formedness statements about `sep`, `prod`, `powerset`, `funs`, `lambda`, … ; at default
+-- transparency a *failing* unification of a seed against a goal unfolds these down to the
+-- quotient construction of the model before giving up, and a client that tags a few seeds of
+-- its own (see `ZFLean/Imp.lean`) pushes `zdom` over the heartbeat budget through failures
+-- alone. At reducible transparency the same searches close the same sites in the library, the
+-- mismatches fail on the head symbol, and the case-study module elaborates twice as fast.
+
 macro "zrel" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; solve_by_elim using zrel, zpfun, zfun)
-  | solve_by_elim using zrel, zpfun, zfun)
+  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+     with_reducible solve_by_elim using zrel, zpfun, zfun)
+  | with_reducible solve_by_elim using zrel, zpfun, zfun)
 
 set_option hygiene false in
 macro "zpfun" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; solve_by_elim using zpfun, zfun)
-  | solve_by_elim using zpfun, zfun)
+  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; with_reducible solve_by_elim using zpfun, zfun)
+  | with_reducible solve_by_elim using zpfun, zfun)
 
 set_option hygiene false in
 macro "zfun" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; solve_by_elim using zfun)
-  | solve_by_elim using zfun)
+  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; with_reducible solve_by_elim using zfun)
+  | with_reducible solve_by_elim using zfun)
 
 /-
 `zdom` discharges the membership side conditions that show up at function-application sites:
@@ -92,10 +101,12 @@ set_option hygiene false in
 macro "zdom" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; solve_by_elim using zdom, zfun, zpfun)
-  | solve_by_elim using zdom, zfun, zpfun
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; solve_by_elim using zdom, zdom_conv, zfun, zpfun)
-  | solve_by_elim using zdom, zdom_conv, zfun, zpfun)
+  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+     with_reducible solve_by_elim using zdom, zfun, zpfun)
+  | with_reducible solve_by_elim using zdom, zfun, zpfun
+  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+     with_reducible solve_by_elim using zdom, zdom_conv, zfun, zpfun)
+  | with_reducible solve_by_elim using zdom, zdom_conv, zfun, zpfun)
 end ZFTactics
 
 end

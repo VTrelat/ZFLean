@@ -221,16 +221,16 @@ composition is `ZFSet.composition`. -/
 
 theorem sum_eq_subtype_toZFSet {A B : ZFSet} : (A ⊎ B) = {x // x ∈ toZFSet A B} := rfl
 
-theorem pair_false_mem_toZFSet {A B a : ZFSet} (ha : a ∈ A) :
+@[zdom] theorem pair_false_mem_toZFSet {A B a : ZFSet} (ha : a ∈ A) :
     ZFSet.pair ZFBool.false.val a ∈ toZFSet A B :=
   mem_union.mpr <| Or.inl <| pair_mem_prod.mpr ⟨mem_singleton.mpr rfl, ha⟩
 
-theorem pair_true_mem_toZFSet {A B b : ZFSet} (hb : b ∈ B) :
+@[zdom] theorem pair_true_mem_toZFSet {A B b : ZFSet} (hb : b ∈ B) :
     ZFSet.pair ZFBool.true.val b ∈ toZFSet A B :=
   mem_union.mpr <| Or.inr <| pair_mem_prod.mpr ⟨mem_singleton.mpr rfl, hb⟩
 
 /-- An element of `toZFSet A B` tagged by `false` has its second projection in `A`. -/
-theorem mem_left_of_toZFSet {A B z : ZFSet} (hz : z ∈ toZFSet A B)
+@[zdom] theorem mem_left_of_toZFSet {A B z : ZFSet} (hz : z ∈ toZFSet A B)
     (h : z.π₁ = ZFBool.false.val) : z.π₂ ∈ A := by
   rw [toZFSet, mem_union] at hz
   rcases hz with hz | hz
@@ -240,7 +240,7 @@ theorem mem_left_of_toZFSet {A B z : ZFSet} (hz : z ∈ toZFSet A B)
     nomatch zftrue_ne_zffalse h
 
 /-- An element of `toZFSet A B` not tagged by `false` has its second projection in `B`. -/
-theorem mem_right_of_toZFSet {A B z : ZFSet} (hz : z ∈ toZFSet A B)
+@[zdom] theorem mem_right_of_toZFSet {A B z : ZFSet} (hz : z ∈ toZFSet A B)
     (h : z.π₁ ≠ ZFBool.false.val) : z.π₂ ∈ B := by
   rw [toZFSet, mem_union] at hz
   rcases hz with hz | hz
@@ -273,11 +273,9 @@ noncomputable def coprod {A B X : ZFSet} (f g : ZFSet)
   (hf : IsFunc A X f := by zfun) (hg : IsFunc B X g := by zfun) : ZFSet :=
   λᶻ : toZFSet A B → X
      |  hz : z     ↦ if h : z.π₁ = ZFBool.false.val then
-                       (@ᶻf ⟨z.π₂, by
-                         rw [is_func_dom_eq hf]; exact mem_left_of_toZFSet hz h⟩).val
+                       (@ᶻf ⟨z.π₂, by zdom⟩).val
                      else
-                       (@ᶻg ⟨z.π₂, by
-                         rw [is_func_dom_eq hg]; exact mem_right_of_toZFSet hz h⟩).val
+                       (@ᶻg ⟨z.π₂, by zdom⟩).val
 
 @[zfun]
 theorem coprod_is_func {A B X f g : ZFSet} (hf : IsFunc A X f) (hg : IsFunc B X g) :
@@ -298,8 +296,7 @@ theorem coprod_is_pfunc {A B X f g : ZFSet} (hf : IsFunc A X f) (hg : IsFunc B X
 theorem coprod_of_inl {A B X f g : ZFSet} (hf : IsFunc A X f) (hg : IsFunc B X g)
     {a : ZFSet} (ha : a ∈ A) :
     fapply (coprod f g hf hg) (coprod_is_pfunc hf hg)
-        ⟨ZFSet.pair ZFBool.false.val a, by
-          rw [is_func_dom_eq (coprod_is_func hf hg)]; exact pair_false_mem_toZFSet ha⟩
+        ⟨ZFSet.pair ZFBool.false.val a, by zdom⟩
       = @ᶻf ⟨a, by zdom⟩ := by
   have key : (ZFSet.pair ZFBool.false.val a).pair
       (@ᶻf ⟨a, by zdom⟩ : {x // x ∈ X}).val ∈ coprod f g hf hg := by
@@ -314,8 +311,7 @@ theorem coprod_of_inl {A B X f g : ZFSet} (hf : IsFunc A X f) (hg : IsFunc B X g
 theorem coprod_of_inr {A B X f g : ZFSet} (hf : IsFunc A X f) (hg : IsFunc B X g)
     {b : ZFSet} (hb : b ∈ B) :
     fapply (coprod f g hf hg) (coprod_is_pfunc hf hg)
-        ⟨ZFSet.pair ZFBool.true.val b, by
-          rw [is_func_dom_eq (coprod_is_func hf hg)]; exact pair_true_mem_toZFSet hb⟩
+        ⟨ZFSet.pair ZFBool.true.val b, by zdom⟩
       = @ᶻg ⟨b, by zdom⟩ := by
   have key : (ZFSet.pair ZFBool.true.val b).pair
       (@ᶻg ⟨b, by zdom⟩ : {x // x ∈ X}).val ∈ coprod f g hf hg := by

@@ -800,6 +800,16 @@ theorem mem_of_mem_dom {f A B : ZFSet} (hf : f.IsPFunc A B) {x : ZFSet} (hx : x 
 theorem pair_mem_prod_of_mem {A B a b : ZFSet} (ha : a ∈ A) (hb : b ∈ B) :
     a.pair b ∈ A.prod B := pair_mem_prod.mpr ⟨ha, hb⟩
 
+/-- Elimination forms of `pair_mem_prod` through the projections, so that `zdom` reaches the
+components of a pair bound by `λᶻ … | (a, b) ↦ …` without destructuring. -/
+@[zdom]
+theorem π₁_mem_of_mem_prod {A B z : ZFSet} (hz : z ∈ A.prod B) : z.π₁ ∈ A :=
+  (pair_mem_prod.mp (pair_eta hz ▸ hz)).1
+
+@[zdom]
+theorem π₂_mem_of_mem_prod {A B z : ZFSet} (hz : z ∈ A.prod B) : z.π₂ ∈ B :=
+  (pair_mem_prod.mp (pair_eta hz ▸ hz)).2
+
 /-- Introduction form of `mem_funs`. -/
 @[zdom]
 theorem mem_funs_of_is_func {A B f : ZFSet} (hf : IsFunc A B f) : f ∈ A.funs B :=
@@ -2558,14 +2568,8 @@ noncomputable def fprod {A B A' B' : ZFSet} (f g : ZFSet)
   λᶻ : A.prod B → A'.prod B'
      | hz : z   ↦ let a := z.π₁
                   let b := z.π₂
-                  let fa : ZFSet := @ᶻf ⟨a, by
-                    rw [is_func_dom_eq hf]
-                    rw [pair_eta hz, pair_mem_prod] at hz
-                    exact hz.1⟩
-                  let gb : ZFSet := @ᶻg ⟨b, by
-                    rw [is_func_dom_eq hg]
-                    rw [pair_eta hz, pair_mem_prod] at hz
-                    exact hz.2⟩
+                  let fa : ZFSet := @ᶻf ⟨a, by zdom⟩
+                  let gb : ZFSet := @ᶻg ⟨b, by zdom⟩
                   fa.pair gb
 @[zfun]
 theorem fprod_is_func {A B A' B' φ ψ : ZFSet} (hφ : A.IsFunc A' φ) (hψ : B.IsFunc B' ψ) :
@@ -2709,7 +2713,7 @@ theorem pair_mem_fprod {A B C D f g x y : ZFSet} {hf : A.IsFunc C f} {hg : B.IsF
 theorem fapply_fprod {A B C D f g a b : ZFSet} (hf : A.IsFunc C f) (hg : B.IsFunc D g)
   (ha : a ∈ A) (hb : b ∈ B) :
     @ᶻ(fprod f g)
-      ⟨a.pair b, by rw [is_func_dom_eq (fprod_is_func hf hg), pair_mem_prod]; exact ⟨ha, hb⟩⟩ =
+      ⟨a.pair b, by zdom⟩ =
     let fa : ZFSet := @ᶻf ⟨a, by zdom⟩
     let gb : ZFSet := @ᶻg ⟨b, by zdom⟩
     fa.pair gb := by
