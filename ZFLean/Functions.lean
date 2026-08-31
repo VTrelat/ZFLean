@@ -1654,32 +1654,6 @@ def IsFinite (x : ZFSet) := ∃ (n f : ZFSet) (_ : n ∈ Nat)
 
 abbrev ZFFinSet := {x : ZFSet // x.IsFinite}
 
-noncomputable def Max (S : ZFSet) [linord : LinearOrder {x // x ∈ S}] : ZFSet :=
-  ε (S.sep fun x ↦ (_ : x ∈ S) → ∀ y, (_ : y ∈ S) → linord.le ⟨y, ‹_›⟩ ⟨x, ‹_›⟩)
-noncomputable def Min (S : ZFSet) [linord : LinearOrder {x // x ∈ S}] : ZFSet :=
-  ε (S.sep fun x ↦ (_ : x ∈ S) → ∀ y, (_ : y ∈ S) → linord.le ⟨x, ‹_›⟩ ⟨y, ‹_›⟩)
-
-@[reducible]
-def LinearOrder.ofSubset {S T : ZFSet} (S_T : S ⊆ T) [linordT : LinearOrder {x // x ∈ T}] :
-    LinearOrder {x // x ∈ S} :=
-  LinearOrder.lift'
-    (fun ⟨x, hx⟩ => (⟨x, S_T hx⟩:{x // x ∈ T})) (by rintro ⟨x, hx⟩ ⟨y, hy⟩ _; injections; congr)
-
-example {x : ZFSet} {hx : x ∈ Nat} :
-  @ZFSet.Max ({x} : ZFSet)
-    (@LinearOrder.ofSubset ({x} : ZFSet) Nat
-      (by intro; rw [mem_singleton]; rintro rfl; exact hx) ZFNat.instLinearOrder) = x := by
-  unfold Max
-  simp_rw [mem_singleton, mem_sep, mem_singleton]
-  have :
-    ∃ z, z = x ∧ ∀ (x_1 : z = x) (y : ZFSet) (x_2 : y = x),
-      (⟨y, by rwa [x_2]⟩ : ZFNat) ≤ ⟨z, by rwa [x_1]⟩ := by
-    exists x
-    and_intros
-    · rfl
-    · rintro _ y rfl
-      apply le_refl
-  exact Classical.epsilon_spec this |>.left
 end Finite
 
 section Auxiliary

@@ -137,6 +137,95 @@ theorem fapply_override_self {σ x n A B : ZFSet} (hσ : σ.IsPFunc A B) (hx : x
   · exact (h x z y hxz hxy).elim
   · exact hg.2 x y hxy z hxz
 
+/-- The empty relation is a partial function. -/
+@[zpfun] theorem IsPFunc.empty {A B : ZFSet} : (∅ : ZFSet).IsPFunc A B :=
+  ⟨fun z hz => absurd hz (notMem_empty z), fun x y hxy => absurd hxy (notMem_empty (x.pair y))⟩
+
+theorem domRestrict_mono {S R₁ R₂ : ZFSet} (h : R₁ ⊆ R₂) : S ◁ R₁ ⊆ S ◁ R₂ := by
+  intro p hp
+  rw [domRestrict, mem_sep] at hp ⊢
+  exact ⟨h hp.1, hp.2⟩
+
+theorem composition_mono_left {g₁ g₂ f A B C : ZFSet} (h : g₁ ⊆ g₂) :
+    composition g₁ f A B C ⊆ composition g₂ f A B C := by
+  intro p hp
+  obtain ⟨x, w, y, rfl, xA, yC, wB, hf, hg⟩ := mem_composition _ _ |>.mp hp
+  exact (mem_composition _ _).mpr ⟨x, w, y, rfl, xA, yC, wB, hf, h hg⟩
+
+/-- Iterates of a loop over the state space `S`, with continue set `t`, stop set `f`, and body
+relation `R`: no iteration allows nothing, and one more iteration stops on `f` or runs `R`
+once and then the previous iterations. -/
+noncomputable def loopIter (S t f R : ZFSet) : ℕ → ZFSet
+  | 0 => ∅
+  | n + 1 => (f ◁ 𝟙S) ∪ (t ◁ composition (loopIter S t f R n) R S S S)
+
+/-- The loop itself: the union of the chain of its iterates. -/
+noncomputable def loop (S t f R : ZFSet) : ZFSet :=
+  ⋃₀ ((S.prod S).powerset.sep fun r => ∃ n : ℕ, r = loopIter S t f R n)
+
+@[zrel] theorem loopIter_is_rel {S t f R : ZFSet} (n : ℕ) : loopIter S t f R n ⊆ S.prod S := by
+  induction n with
+  | zero => exact empty_subset _
+  | succ n ih =>
+    rw [loopIter]
+    exact union_is_rel (domRestrict_is_rel (is_rel_of_is_func Id.IsFunc))
+      (domRestrict_is_rel is_rel_of_composition)
+
+@[zrel] theorem loop_is_rel {S t f R : ZFSet} : loop S t f R ⊆ S.prod S := by
+  intro p hp
+  obtain ⟨r, hr, p_r⟩ := mem_sUnion.mp hp
+  obtain ⟨-, n, rfl⟩ := mem_sep.mp hr
+  exact loopIter_is_rel n p_r
+
+theorem mem_loop_iff {S t f R p : ZFSet} : p ∈ loop S t f R ↔ ∃ n, p ∈ loopIter S t f R n := by
+  rw [loop, mem_sUnion]
+  constructor
+  · rintro ⟨r, hr, p_r⟩
+    obtain ⟨-, n, rfl⟩ := mem_sep.mp hr
+    exact ⟨n, p_r⟩
+  · rintro ⟨n, hn⟩
+    exact ⟨loopIter S t f R n,
+      mem_sep.mpr ⟨mem_powerset.mpr (loopIter_is_rel n), n, rfl⟩, hn⟩
+
+theorem loopIter_succ_mono {S t f R : ZFSet} (n : ℕ) :
+    loopIter S t f R n ⊆ loopIter S t f R (n + 1) := by
+  induction n with
+  | zero => exact empty_subset _
+  | succ n ih =>
+    rw [loopIter, loopIter]
+    intro p hp
+    rcases mem_union.mp hp with hp | hp
+    · exact mem_union.mpr (Or.inl hp)
+    · exact mem_union.mpr (Or.inr (domRestrict_mono (composition_mono_left ih) hp))
+
+theorem loopIter_le_mono {S t f R : ZFSet} {m n : ℕ} (h : m ≤ n) :
+    loopIter S t f R m ⊆ loopIter S t f R n := by
+  induction n, h using Nat.le_induction with
+  | base => exact fun _ h => h
+  | succ n _ ih => exact fun p hp => loopIter_succ_mono n (ih hp)
+
+theorem loopIter_pfunc {S t f R : ZFSet} (hR : R.IsPFunc S S)
+    (htf : ∀ x, x ∈ t → x ∈ f → False) (n : ℕ) : (loopIter S t f R n).IsPFunc S S := by
+  induction n with
+  | zero => exact IsPFunc.empty
+  | succ n ih =>
+    rw [loopIter]
+    exact IsPFunc.union (IsPFunc.domRestrict Id.IsPFunc)
+      (IsPFunc.domRestrict (IsPFunc_of_composition_IsPFunc hR ih))
+      fun x y z hy hz =>
+        htf x (mem_domRestrict.mp hz).1 (mem_domRestrict.mp hy).1
+
+/-- A loop with a deterministic body and disjoint continue and stop sets is deterministic:
+two pairs of the union come from two iterates, and the chain puts both in the later one. -/
+@[zpfun] theorem loop_pfunc {S t f R : ZFSet} (hR : R.IsPFunc S S)
+    (htf : ∀ x, x ∈ t → x ∈ f → False) : (loop S t f R).IsPFunc S S := by
+  refine ⟨loop_is_rel, fun x y hxy z hxz => ?_⟩
+  obtain ⟨m, hm⟩ := mem_loop_iff.mp hxy
+  obtain ⟨n, hn⟩ := mem_loop_iff.mp hxz
+  exact (loopIter_pfunc hR htf (max m n)).2 x
+    y (loopIter_le_mono (Nat.le_max_left m n) hm)
+    z (loopIter_le_mono (Nat.le_max_right m n) hn)
+
 /-- An abstraction is a partial function whatever its body does; it is total when the body
 stays in the range (`lambda_isFunc`). -/
 @[zpfun] theorem lambda_isPFunc {A B : ZFSet} {f : ZFSet → ZFSet} : (lambda A B f).IsPFunc A B := by
@@ -305,6 +394,9 @@ theorem mem_dom_sem_iff {σ : ZFSet} (hσ : σ ∈ Store V) (e : Expr V) :
 /-- The stores on which `e` is defined and zero. -/
 @[irreducible] def ff (e : Expr V) : ZFSet := (Store V).sep fun σ => σ.pair ∅ ∈ ⟦e⟧ₑ
 
+theorem tt_subset (e : Expr V) : e.tt ⊆ Store V := by rw [tt]; exact sep_subset
+theorem ff_subset (e : Expr V) : e.ff ⊆ Store V := by rw [ff]; exact sep_subset
+
 theorem tt_ff_disjoint (e : Expr V) {σ : ZFSet} (ht : σ ∈ e.tt) (hf : σ ∈ e.ff) : False := by
   rw [tt, mem_sep] at ht
   rw [ff, mem_sep] at hf
@@ -321,6 +413,7 @@ inductive Cmd (V : ZFSet)
   | assign : V → Expr V → Cmd V
   | seq : Cmd V → Cmd V → Cmd V
   | ite : Expr V → Cmd V → Cmd V → Cmd V
+  | whileDo : Expr V → Cmd V → Cmd V
 
 namespace Cmd
 open Expr
@@ -333,6 +426,7 @@ def sem : Cmd V → ZFSet
   | assign x e => λᶻ : ⟦e⟧ₑ.Dom → Store V | h : σ ↦ σ[x.val ↦ (@ᶻ⟦e⟧ₑ ⟨σ, h⟩).val]
   | seq c₁ c₂ => composition c₂.sem c₁.sem (Store V) (Store V) (Store V)
   | ite e c₁ c₂ => (e.tt ◁ c₁.sem) ∪ (e.ff ◁ c₂.sem)
+  | whileDo e c => loop (Store V) e.tt e.ff c.sem
 
 notation:max "⟦" c "⟧ᶜ" => Cmd.sem c
 
@@ -344,6 +438,8 @@ notation:max "⟦" c "⟧ᶜ" => Cmd.sem c
     ⟦seq c₁ c₂⟧ᶜ = composition ⟦c₂⟧ᶜ ⟦c₁⟧ᶜ (Store V) (Store V) (Store V) := by rw [sem]
 @[simp] theorem sem_ite (e : Expr V) (c₁ c₂ : Cmd V) :
     ⟦ite e c₁ c₂⟧ᶜ = (e.tt ◁ ⟦c₁⟧ᶜ) ∪ (e.ff ◁ ⟦c₂⟧ᶜ) := by rw [sem]
+@[simp] theorem sem_whileDo (e : Expr V) (c : Cmd V) :
+    ⟦whileDo e c⟧ᶜ = loop (Store V) e.tt e.ff ⟦c⟧ᶜ := by rw [sem]
 
 attribute [irreducible] sem
 
@@ -361,6 +457,10 @@ attribute [irreducible] sem
     have hd : ∀ σ τ τ' : ZFSet, σ.pair τ ∈ e.tt ◁ ⟦c₁⟧ᶜ → σ.pair τ' ∈ e.ff ◁ ⟦c₂⟧ᶜ → False :=
       fun σ τ τ' h₁ h₂ => tt_ff_disjoint e (mem_domRestrict.mp h₁).1 (mem_domRestrict.mp h₂).1
     apply IsPFunc.union <;> zpfun
+  | whileDo e c ih =>
+    rw [sem_whileDo]
+    have hd : ∀ σ : ZFSet, σ ∈ e.tt → σ ∈ e.ff → False := fun σ => tt_ff_disjoint e
+    zpfun
 
 @[zrel] theorem sem_is_rel (c : Cmd V) : ⟦c⟧ᶜ ⊆ (Store V).prod (Store V) := (sem_pfunc c).1
 
@@ -426,6 +526,16 @@ theorem not_mem_dom_assign_of_unassigned (x y : V) {σ : ZFSet} (hσ : σ ∈ St
   rw [mem_dom_sem_assign_iff, mem_dom_sem_iff hσ]
   intro h
   exact hy (h (mem_union.mpr (Or.inl (mem_singleton.mpr rfl))))
+
+/-- A loop whose test is zero at `σ` stops at once: `(σ, σ)` is in its denotation, through the
+first iterate. -/
+theorem sem_whileDo_exit (e : Expr V) (c : Cmd V) {σ : ZFSet} (hσ : σ ∈ e.ff) :
+    σ.pair σ ∈ ⟦whileDo e c⟧ᶜ := by
+  rw [sem_whileDo]
+  refine mem_loop_iff.mpr ⟨1, ?_⟩
+  rw [loopIter]
+  exact mem_union.mpr (Or.inl (mem_domRestrict.mpr
+    ⟨hσ, pair_self_mem_Id (ff_subset e hσ)⟩))
 
 /-- `x := x + 1` increases the value of `x`. The arithmetic step, `n < n + 1` on `ZFNat`, is
 transferred to `ℕ` and closed by `omega`. -/

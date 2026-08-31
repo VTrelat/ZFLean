@@ -206,19 +206,22 @@ theorem class_eq_iff_related (hrR : R ⊆ E.prod E := by zrel)
     change class_of _ _ (of_in_class ⟨x, xy_related⟩) = _
     rw [class_of_mem_eq_self hrR heR]
 
-@[expose]
-noncomputable def choose_repr (C : E.ZFQuotient R) : C.val :=
+/-- The chosen representative of a class. Private by design: a class of a set-level quotient
+has no canonical representative, so the selection is arbitrary, and the public interface
+(`lift`) demands a proof that the lifted function does not depend on it — the selection
+cannot leak into a result. -/
+private noncomputable def choose_repr (C : E.ZFQuotient R) : C.val :=
     let hC := mem_sep.mp C.prop
     ⟨hC.right.choose, hC.right.choose_spec.left⟩
 
-noncomputable def lift
-    (f : E → α) (C : E.ZFQuotient R) : α :=
+noncomputable def lift (f : E → α)
+    (_h : ∀ a b : E, a.val.pair b.val ∈ R → f a = f b) (C : E.ZFQuotient R) : α :=
   (f (of_in_class (choose_repr C)))
 
 theorem lift_class_of (hrR : R ⊆ E.prod E := by zrel)
 (heR : R.is_rel_equivalence hrR := by assumption) (f : E → α)
 (h : ∀ a b, a.val.pair b.val ∈ R → f a = f b) (x : E) :
-    lift f (class_of hrR heR x) = f x := by
+    lift f h (class_of hrR heR x) = f x := by
   apply h
   rw [of_in_class, ←mem_class_of_iff_related hrR heR]
   exact Subtype.prop <| choose_repr <| class_of _ _ x
@@ -235,7 +238,7 @@ def toSetoid {E R : ZFSet}
 noncomputable def equivZFQuotient (hrR : R ⊆ E.prod E := by zrel)
   (heR : R.is_rel_equivalence hrR := by assumption) :
     Equiv (ZFQuotient E R) (Quotient <| toSetoid  hrR heR) where
-  toFun C := lift (fun x => ⟦x⟧) C
+  toFun C := lift (fun x => ⟦x⟧) (fun _ _ related => Quotient.sound related) C
   invFun W := Quotient.liftOn W (fun W => class_of hrR heR W) (by
     intro a b related
     change a.val.pair b.val ∈ R at related
@@ -245,10 +248,8 @@ noncomputable def equivZFQuotient (hrR : R ⊆ E.prod E := by zrel)
     intro C
     dsimp only
     let W := choose_repr C
-    rw [←class_of_mem_eq_self hrR heR C, lift_class_of _ _ _ _ (of_in_class W),Quotient.liftOn_mk]
-    intro a b related
-    rw [Quotient.eq]
-    exact related
+    rw [←class_of_mem_eq_self hrR heR C, lift_class_of _ _ _ _ (of_in_class W),
+      Quotient.liftOn_mk]
   right_inv := by
     intro W
     cases W using Quotient.ind
@@ -256,9 +257,6 @@ noncomputable def equivZFQuotient (hrR : R ⊆ E.prod E := by zrel)
     dsimp only
     generalize_proofs h
     rw [Quotient.liftOn_mk, lift_class_of _ _ _]
-    intro a b related
-    rw [Quotient.eq]
-    exact related
 
 noncomputable def equivZFQuotient_of_rel {r : E → E → Prop} (re : Equivalence r) :
     Equiv (E.ZFQuotient <| E.equivZFRelation.symm r) (Quotient ⟨r,re⟩) :=
