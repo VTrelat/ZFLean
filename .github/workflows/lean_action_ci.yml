@@ -18,4 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
+      # Refuse admitted declarations and non-standard axioms (see scripts/check.sh).
+      - name: Zero-sorry and axiom gate
+        run: bash scripts/check.sh
       - uses: leanprover-community/docgen-action@v1
