@@ -23,3 +23,10 @@ name = "ZFLean"
 [[lean_lib]]
 name = "Imp"
 srcDir = "casestudy"
+
+# The obligation harness of the paper's evaluation: the case study's 30 leaf obligations under
+# plain `solve_by_elim`, the library's seeds only, and the full environment. Self-verifying —
+# `lake build ImpObligations` certifies the counts reported in the paper. Not a default target.
+[[lean_lib]]
+name = "ImpObligations"
+srcDir = "casestudy"

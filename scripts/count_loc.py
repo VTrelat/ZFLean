@@ -49,11 +49,16 @@ def main():
     # the case study is a separate target, kept apart from the library as a client of it
     per_file['Imp'] = count(os.path.join(root, '..', 'casestudy', 'Imp.lean'))
     seen, tot = set(), [0, 0]
+    case = [0, 0]
     for name, files in COMPONENTS:
         loc = sum(per_file[f][0] for f in files); thm = sum(per_file[f][1] for f in files)
         seen.update(files); tot[0] += loc; tot[1] += thm
+        if 'Imp' in files:
+            case = [loc, thm]
         print(f"{name:40s} {loc:6,d} {thm:5d}")
-    print(f"{'Total':40s} {tot[0]:6,d} {tot[1]:5d}")
+    print(f"{'Library (the seven components above)':40s} {tot[0]-case[0]:6,d} {tot[1]-case[1]:5d}")
+    print(f"{'Case study (casestudy/Imp.lean)':40s} {case[0]:6,d} {case[1]:5d}")
+    print(f"{'Total (library and case study)':40s} {tot[0]:6,d} {tot[1]:5d}")
     rest = sorted(set(per_file) - seen)
     if rest:
         print("\nNot assigned to a component:", ', '.join(rest))

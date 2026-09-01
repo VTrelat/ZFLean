@@ -10,7 +10,8 @@ for f in ZFLean/Functions.lean ZFLean/Recursion.lean ZFLean/Sum.lean ZFLean/Isom
   n=$(grep -o "by zdom" "$f" | wc -l | tr -d ' ')
   printf "%4d  %s\n" "$n" "$f"
 done
-printf "%4d  total (library, excluding the case study ZFLean/Imp.lean)\n" \
-  "$(cat ZFLean/Functions.lean ZFLean/Recursion.lean ZFLean/Sum.lean ZFLean/Isomorphisms.lean \
+auto="$(cat ZFLean/Functions.lean ZFLean/Recursion.lean ZFLean/Sum.lean ZFLean/Isomorphisms.lean \
        ZFLean/Embeddings.lean ZFLean/Naturals.lean ZFLean/Integers.lean ZFLean/Rationals.lean \
        ZFLean/Booleans.lean ZFLean/Quotient.lean ZFLean/Basic.lean ZFLean/Def.lean | grep -o "by zdom" | wc -l | tr -d ' ')"
+printf "%4d automatic + 1 manual (the Cantor–Schröder–Bernstein site in Isomorphisms.lean,\n" "$auto"
+printf "      which destructures an existential hypothesis) = %d total, the population of Sec. 6.2\n" "$((auto+1))"

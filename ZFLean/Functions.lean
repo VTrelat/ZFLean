@@ -181,7 +181,7 @@ section Functions
 
 theorem funs.nonempty {A B : ZFSet} (hB : B ≠ ∅) : ZFSet.funs A B ≠ ∅ := by
   obtain ⟨b, hb⟩ := nonempty_exists_iff.mp hB
-  letI f := (A.prod B).sep fun z ↦ ∃ x ∈ A, z = x.pair b
+  let f := (A.prod B).sep fun z ↦ ∃ x ∈ A, z = x.pair b
   have hf : ZFSet.IsFunc A B f := by
     unfold IsFunc
     and_intros
@@ -2528,6 +2528,148 @@ theorem Card.singleton (x : ZFSet) : Card ⟨{x}, IsFinite.singleton⟩ = 1 := b
           rw [k_unq m xm] at this
           nomatch mem_irrefl _ this
     exact this
+
+theorem ZFNat.succ_val (n : ZFNat) : (ZFNat.succ n).val = insert n.val n.val := by
+  obtain ⟨n, hn⟩ := n
+  rfl
+
+/-- The general specification of `Card`: a finite set is in bijection with the von Neumann
+natural underlying its cardinal. -/
+theorem Card.spec (S : ZFFinSet) :
+    ∃ f, ∃ hf : f ∈ S.val.funs (Card S).val, f.IsBijective (mem_funs.mp hf) := by
+  obtain ⟨S, Sfin⟩ := S
+  rw [Card]
+  split_ifs with hS
+  · subst hS
+    exact ⟨𝟙(∅ : ZFSet), mem_funs_of_is_func Id.IsFunc, Id.IsBijective⟩
+  · extract_lets ex_bij
+    obtain ⟨f, hn, hf, bij⟩ := Classical.choose_spec ex_bij
+    exact ⟨f, hf, bij⟩
+
+/-- Distinct von Neumann naturals are not equinumerous: a bijection between `m` and `n` forces
+`m = n`. In the successor step, the bijection is patched into one between the predecessors by
+rerouting the preimage of the top element of `n` to the value of the top element of `m`. -/
+theorem ZFNat.eq_of_bijective (m : ZFNat) : ∀ (n : ZFNat) (f : ZFSet)
+    (hf : f ∈ ZFSet.funs m.val n.val), f.IsBijective (mem_funs.mp hf) → m = n := by
+  induction m using ZFNat.induction with
+  | zero =>
+    intro n f hf bij
+    have : n.val = ∅ := by
+      rw [eq_empty]
+      intro y hy
+      obtain ⟨x, hx, -⟩ := bij.2 y hy
+      exact notMem_empty x hx
+    exact Subtype.ext this.symm
+  | succ m IH =>
+    intro n f hf bij
+    have hfunc := mem_funs.mp hf
+    have hMtop : m.val ∈ (ZFNat.succ m).val := by
+      rw [ZFNat.succ_val]; exact mem_insert _ _
+    have hn0 : n ≠ 0 := by
+      rintro rfl
+      obtain ⟨y, hy, -⟩ := hfunc.2 m.val hMtop
+      exact notMem_empty y (pair_mem_prod.mp (hfunc.1 hy)).2
+    obtain ⟨n', rfl⟩ : ∃ n', n = ZFNat.succ n' :=
+      (ZFNat.cases (P := fun k => k = 0 ∨ ∃ n', k = ZFNat.succ n') n (Or.inl rfl)
+        fun n' => Or.inr ⟨n', rfl⟩).resolve_left hn0
+    have hNtop : n'.val ∈ (ZFNat.succ n').val := by
+      rw [ZFNat.succ_val]; exact mem_insert _ _
+    have hxs : ∀ {x : ZFSet}, x ∈ m.val → x ∈ (ZFNat.succ m).val := fun hx => by
+      rw [ZFNat.succ_val]; exact mem_insert_iff.mpr (Or.inr hx)
+    have hsN : ∀ {z : ZFSet}, z ∈ n'.val → z ∈ (ZFNat.succ n').val := fun hz => by
+      rw [ZFNat.succ_val]; exact mem_insert_iff.mpr (Or.inr hz)
+    have hran : ∀ {x y : ZFSet}, x.pair y ∈ f → y ∈ insert n'.val n'.val := fun h => by
+      have := (pair_mem_prod.mp (hfunc.1 h)).2
+      rwa [ZFNat.succ_val] at this
+    set g : ZFSet := (m.val.prod n'.val).sep (fun p => ∃ x y : ZFSet, p = x.pair y ∧
+      ((x.pair y ∈ f ∧ y ≠ n'.val) ∨ (x.pair n'.val ∈ f ∧ m.val.pair y ∈ f))) with hg_def
+    have mem_g : ∀ {x y : ZFSet}, x.pair y ∈ g ↔ (x ∈ m.val ∧ y ∈ n'.val) ∧
+        ((x.pair y ∈ f ∧ y ≠ n'.val) ∨ (x.pair n'.val ∈ f ∧ m.val.pair y ∈ f)) := by
+      intro x y
+      rw [hg_def, mem_sep, pair_mem_prod]
+      constructor
+      · rintro ⟨hp, a, b, heq, hcase⟩
+        obtain ⟨rfl, rfl⟩ := pair_inj.mp heq
+        exact ⟨hp, hcase⟩
+      · rintro ⟨hp, hcase⟩
+        exact ⟨hp, x, y, rfl, hcase⟩
+    obtain ⟨w, hw, w_unq⟩ := hfunc.2 m.val hMtop
+    have g_func : IsFunc m.val n'.val g := by
+      constructor
+      · rw [hg_def]; exact sep_subset
+      · intro x hx
+        obtain ⟨y, hy, y_unq⟩ := hfunc.2 x (hxs hx)
+        by_cases hyN : y = n'.val
+        · subst hyN
+          have hwN : w ≠ n'.val := by
+            intro hwN
+            subst hwN
+            have : m.val = x := bij.1 m.val x n'.val hMtop (hxs hx) hNtop hw hy
+            exact mem_irrefl x (this ▸ hx)
+          have hwn' : w ∈ n'.val := by
+            have := hran hw
+            rw [mem_insert_iff] at this
+            exact this.resolve_left hwN
+          refine ⟨w, mem_g.mpr ⟨⟨hx, hwn'⟩, Or.inr ⟨hy, hw⟩⟩, ?_⟩
+          rintro y' hy'
+          obtain ⟨-, hcase⟩ := mem_g.mp hy'
+          rcases hcase with ⟨hy', hne⟩ | ⟨-, hMy'⟩
+          · exact absurd (y_unq y' hy') hne
+          · exact w_unq y' hMy'
+        · have hyn' : y ∈ n'.val := by
+            have := hran hy
+            rw [mem_insert_iff] at this
+            exact this.resolve_left hyN
+          refine ⟨y, mem_g.mpr ⟨⟨hx, hyn'⟩, Or.inl ⟨hy, hyN⟩⟩, ?_⟩
+          rintro y' hy'
+          obtain ⟨-, hcase⟩ := mem_g.mp hy'
+          rcases hcase with ⟨hy', -⟩ | ⟨hxN, -⟩
+          · exact y_unq y' hy'
+          · exact absurd (y_unq n'.val hxN).symm hyN
+    have g_bij : g.IsBijective g_func := by
+      constructor
+      · intro x y z hx hy hz hxz hyz
+        obtain ⟨-, hcx⟩ := mem_g.mp hxz
+        obtain ⟨-, hcy⟩ := mem_g.mp hyz
+        rcases hcx with ⟨hxz', hzN⟩ | ⟨hxN, hMz⟩ <;>
+          rcases hcy with ⟨hyz', hzN'⟩ | ⟨hyN, hMz'⟩
+        · exact bij.1 x y z (hxs hx) (hxs hy) (hsN hz) hxz' hyz'
+        · exfalso
+          have : x = m.val := bij.1 x m.val z (hxs hx) hMtop (hsN hz) hxz' hMz'
+          exact mem_irrefl m.val (this ▸ hx)
+        · exfalso
+          have : y = m.val := bij.1 y m.val z (hxs hy) hMtop (hsN hz) hyz' hMz
+          exact mem_irrefl m.val (this ▸ hy)
+        · exact bij.1 x y n'.val (hxs hx) (hxs hy) hNtop hxN hyN
+      · intro y hy
+        obtain ⟨x, hx, hxy⟩ := bij.2 y (hsN hy)
+        rw [ZFNat.succ_val, mem_insert_iff] at hx
+        rcases hx with rfl | hx
+        · obtain ⟨x₀, hx₀, hx₀N⟩ := bij.2 n'.val hNtop
+          rw [ZFNat.succ_val, mem_insert_iff] at hx₀
+          rcases hx₀ with rfl | hx₀
+          · exfalso
+            have h1 := w_unq y hxy
+            have h2 := w_unq n'.val hx₀N
+            exact mem_irrefl n'.val ((h1.trans h2.symm) ▸ hy)
+          · exact ⟨x₀, hx₀, mem_g.mpr ⟨⟨hx₀, hy⟩, Or.inr ⟨hx₀N, hxy⟩⟩⟩
+        · exact ⟨x, hx, mem_g.mpr ⟨⟨hx, hy⟩,
+            Or.inl ⟨hxy, fun h => mem_irrefl n'.val (h ▸ hy)⟩⟩⟩
+    exact congrArg ZFNat.succ (IH n' g (mem_funs_of_is_func g_func) g_bij)
+
+/-- `Card` is uniquely characterized: any bijection between `S` and a natural forces that
+natural to be `Card S`; in particular any two naturals in bijection with `S` coincide. -/
+theorem Card.uniq (S : ZFFinSet) {n : ZFNat} {f : ZFSet}
+    (hf : f ∈ S.val.funs n.val) (bij : f.IsBijective (mem_funs.mp hf)) : Card S = n := by
+  obtain ⟨g, hg, gbij⟩ := Card.spec S
+  have hg' : IsFunc S.val (Card S).val g := mem_funs.mp hg
+  have hf' : IsFunc S.val n.val f := mem_funs.mp hf
+  have hinv : IsFunc (Card S).val S.val (g.inv hg'.1) := inv_is_func_of_bijective gbij
+  have hcomp : IsFunc (Card S).val n.val (fcomp f (g.inv hg'.1) hf' hinv) :=
+    IsFunc_of_composition_IsFunc hf' hinv
+  exact ZFNat.eq_of_bijective (Card S) n _ (mem_funs_of_is_func hcomp)
+    (IsBijective.composition_of_bijective (hf := hinv) (hg := hf')
+      (inv_bijective_of_bijective gbij) bij)
 
 theorem image_of_lambda_subset_range {A B φ : ZFSet} {hφ : A.IsFunc B φ} {S : ZFSet} :
   φ[S] ⊆ B := by

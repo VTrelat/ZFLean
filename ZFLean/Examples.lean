@@ -119,3 +119,10 @@ example (p q : ZFBool) : p ⋀ q = q ⋀ p := by
   transfer ZFBool → Bool =>
     skip
   exact Bool.and_comm p q
+
+/-! ## Algebra directly on the set-level types
+
+Mathlib's algebra-generic tactics apply to the canonical constructions through their typeclass
+instances, with no transfer involved. -/
+
+example (a b : ZFNat) : (a+b)^2 = a^2 + 2*a*b + b^2 := by ring

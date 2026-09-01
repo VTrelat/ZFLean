@@ -28,7 +28,7 @@ abbrev ZFInt' := {x : ZFInt // x ≠ 0}
 /-- The equivalence relation on `ℤ × ℤ⋆` that defines the rational numbers. -/
 protected abbrev qrel (p q : ZFInt × ZFInt') : Prop := p.1 * q.2 = p.2 * q.1
 
-protected def qrel_eq : Equivalence ZFSet.qrel where
+protected theorem qrel_eq : Equivalence ZFSet.qrel where
   refl x := ZFInt.mul_comm x.1 x.2
   symm h := by
     unfold ZFSet.qrel at h ⊢
@@ -652,7 +652,7 @@ theorem not_isPos_zero : ¬ isPos (0 : ZFRat) := by
 
 theorem isPos_one : isPos (1 : ZFRat) := by
   rw [one_eq, isPos_eq]
-  simp [ZFInt.zero_lt_one]
+  simp
 
 theorem isPos_add {x y : ZFRat} (hx : isPos x) (hy : isPos y) : isPos (x + y) := by
   induction x using Quotient.ind

@@ -10,19 +10,20 @@ public import ZFLean
 /-!
 # Case study: a denotational semantics on set-level stores
 
-A small imperative language — literals, variables and addition; `skip`, assignment,
-sequencing and a conditional — receives a denotational semantics inside the model. Stores are
-the *set* `Store V` of partial functions from the set `V` of variable names to `Nat`; an
+A small imperative language (literals, variables, addition; `skip`, assignment, sequencing,
+a conditional, and a `while` loop) receives a denotational semantics inside the model. Stores
+form the set `Store V` of partial functions from the set `V` of variable names to `Nat`; an
 expression denotes a partial function `Store V ⇸ Nat`, defined exactly on the stores that
-assign all its variables (`Expr.mem_dom_sem_iff`); a command denotes a relation on `Store V`,
-which is a partial function (`Cmd.sem_pfunc`: the language is deterministic). Program
-equivalence is equality of denotations, i.e. equality of sets (`Cmd.sem_seq_assoc`, …).
+assign all its variables (`Expr.mem_dom_sem_iff`); a command denotes a relation on `Store V`
+that is a partial function (`Cmd.sem_pfunc`: the language is deterministic), and the loop
+satisfies its unfolding law (`Cmd.sem_whileDo_unfold`). Program equivalence is equality of
+denotations, that is, equality of sets (`Cmd.sem_seq_assoc`, …).
 
-The file is a *client* of the library: a separate Lake target (`Imp`, see `lakefile.toml`)
-that imports `ZFLean` as any downstream project would. Its first section adds the two operations
-of the relational calculus that the semantics needs — domain restriction `S ◁ R` and override
-`σ[x ↦ n]` — with their closure lemmas tagged for `zrel`/`zpfun`/`zdom`; the semantics itself
-then uses the library as is.
+The file is a client of the library: a separate Lake target (`Imp`, see `lakefile.toml`) that
+imports `ZFLean` as any downstream project would. Its first section adds what the semantics
+needs and the library lacks: domain restriction `S ◁ R`, override `σ[x ↦ n]`, the union of
+partial functions with disjoint domains, and the loop operator, with their closure lemmas
+tagged for `zrel`/`zpfun`/`zdom`; the semantics itself then uses the library as is.
 -/
 
 public noncomputable section
@@ -226,6 +227,39 @@ two pairs of the union come from two iterates, and the chain puts both in the la
     y (loopIter_le_mono (Nat.le_max_left m n) hm)
     z (loopIter_le_mono (Nat.le_max_right m n) hn)
 
+/-- The loop satisfies its one-step unfolding law: stop on `f`, or run `R` once and loop.
+Restriction and composition commute with the union of the chain memberwise, so each direction
+reads the shape of a successor iterate. -/
+theorem loop_unfold {S t f R : ZFSet} :
+    loop S t f R = (f ◁ 𝟙S) ∪ (t ◁ composition (loop S t f R) R S S S) := by
+  ext1 p
+  constructor
+  · intro hp
+    obtain ⟨n, hn⟩ := mem_loop_iff.mp hp
+    cases n with
+    | zero => rw [loopIter] at hn; exact absurd hn (notMem_empty p)
+    | succ n =>
+      rw [loopIter] at hn
+      rcases mem_union.mp hn with h | h
+      · exact mem_union.mpr (Or.inl h)
+      · exact mem_union.mpr (Or.inr (domRestrict_mono
+          (composition_mono_left fun q hq => mem_loop_iff.mpr ⟨n, hq⟩) h))
+  · intro hp
+    rcases mem_union.mp hp with h | h
+    · refine mem_loop_iff.mpr ⟨1, ?_⟩
+      rw [loopIter]
+      exact mem_union.mpr (Or.inl h)
+    · rw [domRestrict, mem_sep] at h
+      obtain ⟨hcomp, x, y, rfl, hxt⟩ := h
+      obtain ⟨x', w, y', heq, hxS, hyS, hwS, hxw, hwy⟩ := (mem_composition _ _).mp hcomp
+      obtain ⟨rfl, rfl⟩ := pair_inj.mp heq
+      obtain ⟨n, hn⟩ := mem_loop_iff.mp hwy
+      refine mem_loop_iff.mpr ⟨n + 1, ?_⟩
+      rw [loopIter]
+      refine mem_union.mpr (Or.inr ?_)
+      rw [domRestrict, mem_sep]
+      exact ⟨(mem_composition _ _).mpr ⟨x, w, y, rfl, hxS, hyS, hwS, hxw, hn⟩, x, y, rfl, hxt⟩
+
 /-- An abstraction is a partial function whatever its body does; it is total when the body
 stays in the range (`lambda_isFunc`). -/
 @[zpfun] theorem lambda_isPFunc {A B : ZFSet} {f : ZFSet → ZFSet} : (lambda A B f).IsPFunc A B := by
@@ -354,8 +388,8 @@ def FV : Expr V → ZFSet
   | var x => {x.val}
   | add e₁ e₂ => FV e₁ ∪ FV e₂
 
-/-- Definedness: `e` is defined at `σ` exactly when `σ` assigns every variable of `e` — the
-well-definedness condition of B, here a theorem about domains. -/
+/-- Definedness: `e` is defined at `σ` exactly when `σ` assigns every variable of `e`, B's
+well-definedness condition, here a theorem about domains. -/
 theorem mem_dom_sem_iff {σ : ZFSet} (hσ : σ ∈ Store V) (e : Expr V) :
     σ ∈ ⟦e⟧ₑ.Dom ↔ e.FV ⊆ σ.Dom := by
   induction e with
@@ -443,8 +477,10 @@ notation:max "⟦" c "⟧ᶜ" => Cmd.sem c
 
 attribute [irreducible] sem
 
-/-- Commands denote partial functions: the language is deterministic. Every case is closed by
-`zpfun`; the conditional needs the disjointness of the two guards as a hypothesis. -/
+/-- Commands denote partial functions: the language is deterministic. Every case but the
+assignment is closed by `zpfun`, the conditional once its union rule is applied with the
+disjointness of the two guards as a hypothesis; the assignment needs the weakening step
+`pfunc_weaken`, which the search has no rule for. -/
 @[zpfun] theorem sem_pfunc (c : Cmd V) : ⟦c⟧ᶜ.IsPFunc (Store V) (Store V) := by
   induction c with
   | skip => rw [sem_skip]; zpfun
@@ -492,9 +528,9 @@ totality obligations `zfun` discharges from the two rules above. -/
 theorem sem_seq_eq_fcomp {c₁ c₂ : Cmd V} (h₁ : (Store V).IsFunc (Store V) ⟦c₁⟧ᶜ)
     (h₂ : (Store V).IsFunc (Store V) ⟦c₂⟧ᶜ) : ⟦seq c₁ c₂⟧ᶜ = ⟦c₂⟧ᶜ ∘ᶻ ⟦c₁⟧ᶜ := sem_seq c₁ c₂
 
-/-- Running `x := n; y := m` on a store: `fapply_composition` of the library, every
-side condition — two totality facts, one partial-functionality fact, three domain
-memberships — discharged by the tactics. -/
+/-- Running `x := n; y := m` on a store, by `fapply_composition` of the library; the tactics
+discharge every side condition: two totality facts, one partial-functionality fact, three
+domain memberships. -/
 example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     @ᶻ(⟦assign y (lit m)⟧ᶜ ∘ᶻ ⟦assign x (lit n)⟧ᶜ) ⟨σ, by zdom⟩ =
       @ᶻ⟦assign y (lit m)⟧ᶜ ⟨(@ᶻ⟦assign x (lit n)⟧ᶜ ⟨σ, by zdom⟩).val, by zdom⟩ :=
@@ -536,6 +572,24 @@ theorem sem_whileDo_exit (e : Expr V) (c : Cmd V) {σ : ZFSet} (hσ : σ ∈ e.f
   rw [loopIter]
   exact mem_union.mpr (Or.inl (mem_domRestrict.mpr
     ⟨hσ, pair_self_mem_Id (ff_subset e hσ)⟩))
+
+/-- One true-branch step: if the test holds at `σ`, the body steps to `σ'`, and the loop sends
+`σ'` to `τ`, then the loop sends `σ` to `τ`. -/
+theorem sem_whileDo_step (e : Expr V) (c : Cmd V) {σ σ' τ : ZFSet} (hσ : σ ∈ e.tt)
+    (hbody : σ.pair σ' ∈ ⟦c⟧ᶜ) (hloop : σ'.pair τ ∈ ⟦whileDo e c⟧ᶜ) :
+    σ.pair τ ∈ ⟦whileDo e c⟧ᶜ := by
+  obtain ⟨hσS, hσ'S⟩ := pair_mem_prod.mp (sem_is_rel c hbody)
+  rw [sem_whileDo] at hloop
+  obtain ⟨-, hτS⟩ := pair_mem_prod.mp (loop_is_rel hloop)
+  rw [sem_whileDo, loop_unfold]
+  exact mem_union.mpr (Or.inr (mem_domRestrict.mpr ⟨hσ,
+    (mem_composition _ _).mpr ⟨σ, σ', τ, rfl, hσS, hτS, hσ'S, hbody, hloop⟩⟩))
+
+/-- The unfolding law at the level of programs: a loop is its one-step conditional expansion. -/
+theorem sem_whileDo_unfold (e : Expr V) (c : Cmd V) :
+    ⟦whileDo e c⟧ᶜ = ⟦ite e (seq c (whileDo e c)) skip⟧ᶜ := by
+  conv_lhs => rw [sem_whileDo, loop_unfold]
+  rw [sem_ite, sem_seq, sem_skip, sem_whileDo, union_comm]
 
 /-- `x := x + 1` increases the value of `x`. The arithmetic step, `n < n + 1` on `ZFNat`, is
 transferred to `ℕ` and closed by `omega`. -/

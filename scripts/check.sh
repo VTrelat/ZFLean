@@ -25,4 +25,14 @@ if grep -v "depends on axioms: \[propext, Classical.choice, Quot.sound\]" axioms
   echo "check.sh: FAIL — a headline result depends on a non-standard axiom" >&2
   exit 1
 fi
-echo "check.sh: OK — 0 admitted declarations, standard axioms only"
+echo "== obligation harness (Sec. 6.2) — self-verifying, the build asserts every count =="
+lake build ImpObligations
+
+echo "== size table (Sec. 6.3) =="
+python3 scripts/count_loc.py
+
+echo "== zdom sweep (Sec. 6.2) =="
+scripts/count_sites.sh
+
+echo "check.sh: OK — 0 admitted declarations, standard axioms only, obligation harness verified"
+echo "          (timings: scripts/time_imp.sh reproduces the case-study entry)"

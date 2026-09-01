@@ -167,7 +167,7 @@ Cantor–Bernstein theorem: if there are injective functions
 `f : A → B` and `g : B → A`, then `A` and `B` are isomorphic.
 -/
 theorem isIso_of_biembedding {E F f g : ZFSet} {hf : E.IsFunc F f}
-  (f_inj : IsInjective f) {hg : F.IsFunc E g} (g_inj : IsInjective g hg) : E ≅ᶻ F := by
+  (f_inj : IsInjective f hf) {hg : F.IsFunc E g} (g_inj : IsInjective g hg) : E ≅ᶻ F := by
   let B := g.Range
   have B_sub : B ⊆ E := sep_subset_self
   let u := composition g f E F B
