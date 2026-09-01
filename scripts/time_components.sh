@@ -3,7 +3,7 @@
 # each module is rebuilt from scratch three times (its build artifacts deleted, the rest of
 # the library and Mathlib cached), the median is taken, and medians are summed per component.
 # Raw `time` logs go to `scripts/timings/library.log` and the per-component summary to
-# `scripts/timings/library-summary.txt`; the run reported in the paper ships there. Takes
+# `scripts/timings/library-summary.txt`; neither is tracked. Takes
 # about ten minutes. Requires `bc` and `/usr/bin/time`. Portable to bash 3 (macOS's default
 # shell).
 #

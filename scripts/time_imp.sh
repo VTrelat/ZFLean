@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Median-of-three clean elaboration time of the case-study module (the protocol of the paper's
 # size/time table). Only `casestudy/Imp.lean` is rebuilt; the library and Mathlib stay cached.
-# Raw `time` logs go to `scripts/timings/imp.log`; the run reported in the paper ships there.
+# Raw `time` logs go to `scripts/timings/imp.log`, which is not tracked.
 # Requires `/usr/bin/time`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
