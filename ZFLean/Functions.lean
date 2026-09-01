@@ -82,6 +82,19 @@ theorem mem_range_iff {f A B : ZFSet} (hf : f ⊆ A.prod B := by zrel) {y : ZFSe
   apply sep_subset at h
   exact h
 
+/--
+The domain of a relation does not depend on the ambient sets used to form it: two typings of
+the same graph give the same domain.
+-/
+theorem dom_indep {R A B A' B' : ZFSet} (h : R ⊆ A.prod B) (h' : R ⊆ A'.prod B') :
+    R.Dom h = R.Dom h' := by
+  ext x; rw [mem_dom_iff h, mem_dom_iff h']
+
+/-- The range of a relation does not depend on the ambient sets used to form it. -/
+theorem range_indep {R A B A' B' : ZFSet} (h : R ⊆ A.prod B) (h' : R ⊆ A'.prod B') :
+    R.Range h = R.Range h' := by
+  ext y; rw [mem_range_iff h, mem_range_iff h']
+
 theorem dom_subset (f : ZFSet) {A B : ZFSet} (hf : f ⊆ A.prod B := by zrel) : f.Dom ⊆ A :=
   sep_subset
 
@@ -154,6 +167,18 @@ theorem inv_involutive {R A B : ZFSet} (hR : R ⊆ A.prod B) : (R⁻¹)⁻¹ = R
   · intro h
     obtain ⟨a, ha, b, hb, rfl⟩ := hR h |> mem_prod.mp
     rwa [mem_inv, mem_inv]
+
+/-- The converse of a relation does not depend on the ambient sets used to form it. -/
+theorem inv_indep {R A B A' B' : ZFSet} (h : R ⊆ A.prod B) (h' : R ⊆ A'.prod B') :
+    R.inv h = R.inv h' := by
+  ext z
+  constructor
+  · intro hz
+    obtain ⟨b, hb, a, ha, rfl⟩ := mem_prod.mp (subset_prod_inv h hz)
+    exact (mem_inv h').mpr ((mem_inv h).mp hz)
+  · intro hz
+    obtain ⟨b, hb, a, ha, rfl⟩ := mem_prod.mp (subset_prod_inv h' hz)
+    exact (mem_inv h).mpr ((mem_inv h').mp hz)
 
 theorem dom_inv (f : ZFSet) {A B : ZFSet} (hf : f ⊆ A.prod B := by zrel) :
     Dom f⁻¹ = Range f := by
@@ -789,9 +814,8 @@ theorem mem_dom_of_mem {f A B : ZFSet} (hf : IsFunc A B f) {x : ZFSet} (hx : x �
     x ∈ Dom f (is_rel_of_is_func hf) := by rwa [is_func_dom_eq hf]
 
 /-- Converse of `mem_dom_of_mem`: the domain of a partial function is contained in its source.
-A `zdom_conv` seed rather than a `zdom` one: in the main search it would let `solve_by_elim`
-loop between `x ∈ A` and `x ∈ f.Dom` (see `ZFLean/Tactics.lean`). -/
-@[zdom_conv]
+Not a `zdom` seed: in the search it would let `solve_by_elim` loop between `x ∈ A` and
+`x ∈ f.Dom`; `zdom` applies it once instead, as its fallback step (see `ZFLean/Tactics.lean`). -/
 theorem mem_of_mem_dom {f A B : ZFSet} (hf : f.IsPFunc A B) {x : ZFSet} (hx : x ∈ f.Dom) : x ∈ A :=
   dom_subset f (is_rel_of_is_pfunc hf) hx
 
@@ -843,6 +867,15 @@ theorem fapply.def {f A B : ZFSet} (hf : f.IsPFunc A B) {x : ZFSet} (hx : x ∈ 
   dsimp [fapply]
   generalize_proofs y_def
   exact Classical.choose_spec y_def |>.2
+
+/--
+The value of an application does not depend on the typing certificate that justifies it: two
+certificates for the same graph agree on every common point of the domain.
+-/
+theorem fapply_val_indep {f A B A' B' : ZFSet} (hf : f.IsPFunc A B) (hf' : f.IsPFunc A' B')
+    {x : ZFSet} (hx : x ∈ f.Dom) (hx' : x ∈ f.Dom) :
+    (fapply f hf ⟨x, hx⟩).val = (fapply f hf' ⟨x, hx'⟩).val :=
+  hf.2 x _ (fapply.def hf hx) _ (fapply.def hf' hx')
 
 -- This proof relies on `fapply._proof_1`, the auto-generated existence proof inside `fapply`,
 -- to relate the two `Classical.choose` terms; the auxLemma linter is disabled locally for it.

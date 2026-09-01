@@ -191,6 +191,23 @@ theorem Nat_eq_of_inductive {T : ZFSet} (hT : inductive_set T) :
     rw [mem_sInter hne] at hn
     exact hn Nat <| mem_sep.mpr ⟨mem_powerset.mpr (Nat_subset_of_inductive hT), Nat_ind⟩
 
+private theorem mk_ofNat_mem_Nat : ∀ n : ℕ, mk (PSet.ofNat n) ∈ Nat
+  | 0 => zero_in_Nat
+  | n + 1 => succ_mem_Nat' (mk_ofNat_mem_Nat n)
+
+/--
+The least inductive set is Mathlib's `ω`: `Nat ⊆ ω` because `ω` is inductive, and every element
+of `ω` is a finite von Neumann ordinal, reached from `∅` by successors, hence in `Nat`.
+-/
+theorem Nat_eq_omega : Nat = ω := by
+  refine ZFSet.ext fun x => ⟨fun hx => Nat_subset_of_inductive omega_inductive hx, fun hx => ?_⟩
+  induction x using Quotient.inductionOn with
+  | h x =>
+    obtain ⟨⟨n⟩, h⟩ := hx
+    change mk x ∈ Nat
+    rw [ZFSet.sound h]
+    exact mk_ofNat_mem_Nat n
+
 /--
 The successor function `succ` is build from the insertion of a set into itself embedded into the
 `ZFNat` type.

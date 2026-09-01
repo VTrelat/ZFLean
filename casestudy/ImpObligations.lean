@@ -21,10 +21,9 @@ hypotheses, are run under three configurations of the search:
 
 The file checks its own counts. An obligation claimed closed is closed by the bare tactic
 call; an obligation claimed open is wrapped in `fail_if_success` and then closed by an
-explicit proof; the four searches of configuration (ii) that exhaust their heartbeat budget
-instead of failing are wrapped in `#guard_msgs` asserting that timeout. `lake build
-ImpObligations` therefore certifies the numbers of the paper: 3 of 30 under (i), 5 under
-(ii), 29 under (iii), the thirtieth being the weakening step of the assignment case.
+explicit proof. `lake build ImpObligations` therefore certifies the numbers of the paper:
+3 of 30 under (i), 5 under (ii), 29 under (iii), the thirtieth being the weakening step of
+the assignment case.
 
 The sections appear in the order (i), (iii), (ii), because erasing an attribute is not undone
 within a file. The seven obligations of the determinism proof are tested with the four `Cmd`
@@ -411,70 +410,35 @@ example (x : V) (n : ZFNat) :
   fail_if_success zfun
   exact Cmd.sem_assign_lit_isFunc x n
 
--- L20–L23: `zdom`
--- L20: without the client seeds the search exhausts a doubled heartbeat budget instead of
--- failing; `#guard_msgs` asserts that. The message names the routine the budget ran out in
--- (`whnf`, `isDefEq`, …), which is not stable across builds; `debug.moduleNameAtTimeout false`
--- drops that name, as Lean's own test suite does, and leaves the timeout itself asserted.
-/--
-error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
-
-Note: Use `set_option maxHeartbeats <num>` to set the limit.
-
-Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
--/
-#guard_msgs in
-set_option debug.moduleNameAtTimeout false in
-set_option maxHeartbeats 400000 in
+-- L20–L23: `zdom` — the four domain proofs need the client's seeds; without them the search
+-- fails, promptly (its fallback step is a single application of `mem_of_mem_dom` whose
+-- membership premise must be a hypothesis, so no search runs with an unknown function)
+-- L20
 example {σ x n A B : ZFSet} (hσ : σ.IsPFunc A B) (hx : x ∈ A) (hn : n ∈ B) :
     x ∈ (σ[x ↦ n]).Dom (is_rel_of_is_pfunc (IsPFunc.override hσ hx hn)) := by
-  zdom
--- L21 — same budget exhaustion.
-/--
-error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
-
-Note: Use `set_option maxHeartbeats <num>` to set the limit.
-
-Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
--/
-#guard_msgs in
-set_option debug.moduleNameAtTimeout false in
-set_option maxHeartbeats 400000 in
+  fail_if_success zdom
+  exact mem_dom_override_self hσ hx hn
+-- L21
 example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     σ ∈ (fcomp ⟦Cmd.assign y (Expr.lit m)⟧ᶜ ⟦Cmd.assign x (Expr.lit n)⟧ᶜ
       (Cmd.sem_assign_lit_isFunc y m) (Cmd.sem_assign_lit_isFunc x n)).Dom
       is_rel_of_composition := by
-  zdom
--- L22 — same budget exhaustion.
-/--
-error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
-
-Note: Use `set_option maxHeartbeats <num>` to set the limit.
-
-Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
--/
-#guard_msgs in
-set_option debug.moduleNameAtTimeout false in
-set_option maxHeartbeats 400000 in
+  fail_if_success zdom
+  exact mem_dom_of_mem (IsFunc_of_composition_IsFunc
+    (Cmd.sem_assign_lit_isFunc y m) (Cmd.sem_assign_lit_isFunc x n)) hσ
+-- L22
 example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     (fapply ⟦Cmd.assign x (Expr.lit n)⟧ᶜ (is_func_is_pfunc (Cmd.sem_assign_lit_isFunc x n))
       ⟨σ, mem_dom_of_mem (Cmd.sem_assign_lit_isFunc x n) hσ⟩).val
       ∈ ⟦Cmd.assign y (Expr.lit m)⟧ᶜ.Dom (Cmd.sem_is_rel _) := by
-  zdom
--- L23 — same budget exhaustion.
-/--
-error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
-
-Note: Use `set_option maxHeartbeats <num>` to set the limit.
-
-Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
--/
-#guard_msgs in
-set_option debug.moduleNameAtTimeout false in
-set_option maxHeartbeats 400000 in
+  fail_if_success zdom
+  exact mem_dom_of_mem (Cmd.sem_assign_lit_isFunc y m)
+    (fapply_mem_range (is_func_is_pfunc (Cmd.sem_assign_lit_isFunc x n)) _)
+-- L23
 example (x : V) (n : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     σ ∈ ⟦Cmd.assign x (Expr.lit n)⟧ᶜ.Dom (Cmd.sem_is_rel _) := by
-  zdom
+  fail_if_success zdom
+  exact mem_dom_of_mem (Cmd.sem_assign_lit_isFunc x n) hσ
 
 -- L24–L30: the determinism-proof goals — identity and composition survive on library rules
 -- L24

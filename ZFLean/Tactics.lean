@@ -34,11 +34,10 @@ consequence of a function-space membership hypothesis. Rewriting that hypothesis
 a proof term mentioning the hypothesis, so `simp at *` skips it as dependent and reports no
 progress. Adding a new hypothesis sidesteps that, and cannot cycle. -/
 
-/- Converse-shaped membership lemmas (`x ∈ f.Dom → x ∈ A`). Kept out of the main `zdom` seed set:
-together with `mem_dom_of_mem` they let the search loop between `x ∈ A` and `x ∈ f.Dom`, which
-exhausts the heartbeat budget whenever the membership fact is not a local hypothesis. They are
-tried only in a second, fallback search. -/
-register_label_attr zdom_conv
+/- The converse-shaped membership lemma `mem_of_mem_dom : x ∈ f.Dom → x ∈ A` is not a seed:
+together with `mem_dom_of_mem` it lets the search loop between `x ∈ A` and `x ∈ f.Dom`, and a
+loop through a goal whose function is still a metavariable exhausts the heartbeat budget instead
+of failing. `zdom` applies it once instead, as a fallback step (see the macro below). -/
 
 /-!
 Thanks to Ghilain for the idea of registering specific attributes
@@ -56,7 +55,7 @@ set_option hygiene false
 -- well-formedness statements about `sep`, `prod`, `powerset`, `funs`, `lambda`, … ; at default
 -- transparency a *failing* unification of a seed against a goal unfolds these down to the
 -- quotient construction of the model before giving up, and a client that tags a few seeds of
--- its own (see `ZFLean/Imp.lean`) pushes `zdom` over the heartbeat budget through failures
+-- its own (see `casestudy/Imp.lean`) pushes `zdom` over the heartbeat budget through failures
 -- alone. At reducible transparency the same searches close the same sites in the library, the
 -- mismatches fail on the head symbol, and the case-study module elaborates twice as fast.
 
@@ -93,9 +92,12 @@ relation-shaped subgoal, and a build with `zrel` added closes exactly the same s
 `is_func_dom_eq` itself is an *equation*, hence invisible to `solve_by_elim`; the membership
 bridge `mem_dom_of_mem` (`ZFLean/Functions.lean`) is what makes `x ∈ f.Dom` reachable.
 
-The converse lemmas (`zdom_conv`, e.g. `mem_of_mem_dom : x ∈ f.Dom → x ∈ A`) are tried only in a
-second search: in the main one they would let `solve_by_elim` loop between `x ∈ A` and
-`x ∈ f.Dom` before it reaches `Subtype.property` or `pair_mem_prod_of_mem`, and time out.
+The converse lemma `mem_of_mem_dom : x ∈ f.Dom → x ∈ A` is not searched: in the main search it
+would let `solve_by_elim` loop between `x ∈ A` and `x ∈ f.Dom` before it reaches
+`Subtype.property` or `pair_mem_prod_of_mem`, and a search in which the function is a
+metavariable does not fail, it times out. The fallback applies it once, with its membership
+premise taken from a hypothesis or a subtype binder, and searches only the `IsPFunc` premise,
+whose function is then known. When every step fails, the error names the tactic.
 -/
 set_option hygiene false in
 macro "zdom" : tactic => `(tactic|
@@ -104,9 +106,12 @@ macro "zdom" : tactic => `(tactic|
   | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
      with_reducible solve_by_elim using zdom, zfun, zpfun)
   | with_reducible solve_by_elim using zdom, zfun, zpfun
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
-     with_reducible solve_by_elim using zdom, zdom_conv, zfun, zpfun)
-  | with_reducible solve_by_elim using zdom, zdom_conv, zfun, zpfun)
+  | (refine ZFSet.mem_of_mem_dom ?_ (by first | assumption | exact Subtype.property _)
+     first
+     | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+        with_reducible solve_by_elim using zpfun, zfun)
+     | with_reducible solve_by_elim using zpfun, zfun)
+  | fail "zdom: no seed closes this membership goal")
 end ZFTactics
 
 end
