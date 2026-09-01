@@ -413,28 +413,32 @@ example (x : V) (n : ZFNat) :
 
 -- L20–L23: `zdom`
 -- L20: without the client seeds the search exhausts a doubled heartbeat budget instead of
--- failing; `#guard_msgs` asserts that.
+-- failing; `#guard_msgs` asserts that. The message names the routine the budget ran out in
+-- (`whnf`, `isDefEq`, …), which is not stable across builds; `debug.moduleNameAtTimeout false`
+-- drops that name, as Lean's own test suite does, and leaves the timeout itself asserted.
 /--
-error: (deterministic) timeout at `whnf`, maximum number of heartbeats (400000) has been reached
+error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
 
 Note: Use `set_option maxHeartbeats <num>` to set the limit.
 
 Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
 -/
 #guard_msgs in
+set_option debug.moduleNameAtTimeout false in
 set_option maxHeartbeats 400000 in
 example {σ x n A B : ZFSet} (hσ : σ.IsPFunc A B) (hx : x ∈ A) (hn : n ∈ B) :
     x ∈ (σ[x ↦ n]).Dom (is_rel_of_is_pfunc (IsPFunc.override hσ hx hn)) := by
   zdom
 -- L21 — same budget exhaustion.
 /--
-error: (deterministic) timeout at `whnf`, maximum number of heartbeats (400000) has been reached
+error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
 
 Note: Use `set_option maxHeartbeats <num>` to set the limit.
 
 Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
 -/
 #guard_msgs in
+set_option debug.moduleNameAtTimeout false in
 set_option maxHeartbeats 400000 in
 example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     σ ∈ (fcomp ⟦Cmd.assign y (Expr.lit m)⟧ᶜ ⟦Cmd.assign x (Expr.lit n)⟧ᶜ
@@ -443,13 +447,14 @@ example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
   zdom
 -- L22 — same budget exhaustion.
 /--
-error: (deterministic) timeout at `whnf`, maximum number of heartbeats (400000) has been reached
+error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
 
 Note: Use `set_option maxHeartbeats <num>` to set the limit.
 
 Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
 -/
 #guard_msgs in
+set_option debug.moduleNameAtTimeout false in
 set_option maxHeartbeats 400000 in
 example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     (fapply ⟦Cmd.assign x (Expr.lit n)⟧ᶜ (is_func_is_pfunc (Cmd.sem_assign_lit_isFunc x n))
@@ -458,13 +463,14 @@ example (x y : V) (n m : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
   zdom
 -- L23 — same budget exhaustion.
 /--
-error: (deterministic) timeout at `whnf`, maximum number of heartbeats (400000) has been reached
+error: (deterministic) timeout, maximum number of heartbeats (400000) has been reached
 
 Note: Use `set_option maxHeartbeats <num>` to set the limit.
 
 Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
 -/
 #guard_msgs in
+set_option debug.moduleNameAtTimeout false in
 set_option maxHeartbeats 400000 in
 example (x : V) (n : ZFNat) {σ : ZFSet} (hσ : σ ∈ Store V) :
     σ ∈ ⟦Cmd.assign x (Expr.lit n)⟧ᶜ.Dom (Cmd.sem_is_rel _) := by
