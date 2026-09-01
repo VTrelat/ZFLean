@@ -260,6 +260,22 @@ theorem loop_unfold {S t f R : ZFSet} :
       rw [domRestrict, mem_sep]
       exact ⟨(mem_composition _ _).mpr ⟨x, w, y, rfl, hxS, hyS, hwS, hxw, hn⟩, x, y, rfl, hxt⟩
 
+/-- The loop is the least relation closed under its two rules: a relation `X` that contains the
+stop pairs `f ◁ 𝟙S` and is closed under one more step, `t ◁ (X ∘ R) ⊆ X`, contains every
+iterate, hence the loop. -/
+theorem loop_least {S t f R X : ZFSet} (hstop : f ◁ 𝟙S ⊆ X)
+    (hstep : t ◁ composition X R S S S ⊆ X) : loop S t f R ⊆ X := by
+  intro p hp
+  obtain ⟨n, hn⟩ := mem_loop_iff.mp hp
+  clear hp
+  induction n generalizing p with
+  | zero => rw [loopIter] at hn; exact absurd hn (notMem_empty p)
+  | succ n ih =>
+    rw [loopIter] at hn
+    rcases mem_union.mp hn with h | h
+    · exact hstop h
+    · exact hstep (domRestrict_mono (composition_mono_left fun _ hq => ih hq) h)
+
 /-- An abstraction is a partial function whatever its body does; it is total when the body
 stays in the range (`lambda_isFunc`). -/
 @[zpfun] theorem lambda_isPFunc {A B : ZFSet} {f : ZFSet → ZFSet} : (lambda A B f).IsPFunc A B := by
@@ -584,6 +600,15 @@ theorem sem_whileDo_step (e : Expr V) (c : Cmd V) {σ σ' τ : ZFSet} (hσ : σ 
   rw [sem_whileDo, loop_unfold]
   exact mem_union.mpr (Or.inr (mem_domRestrict.mpr ⟨hσ,
     (mem_composition _ _).mpr ⟨σ, σ', τ, rfl, hσS, hτS, hσ'S, hbody, hloop⟩⟩))
+
+/-- Leastness at the level of programs: the loop's denotation is contained in every relation
+that contains the exit pairs and is closed under one true-branch step. -/
+theorem sem_whileDo_least (e : Expr V) (c : Cmd V) {X : ZFSet}
+    (hstop : e.ff ◁ 𝟙(Store V) ⊆ X)
+    (hstep : e.tt ◁ composition X ⟦c⟧ᶜ (Store V) (Store V) (Store V) ⊆ X) :
+    ⟦whileDo e c⟧ᶜ ⊆ X := by
+  rw [sem_whileDo]
+  exact loop_least hstop hstep
 
 /-- The unfolding law at the level of programs: a loop is its one-step conditional expansion. -/
 theorem sem_whileDo_unfold (e : Expr V) (c : Cmd V) :

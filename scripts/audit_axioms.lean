@@ -44,10 +44,12 @@ import Imp
 #print axioms ZFSet.Imp.Cmd.sem_whileDo_exit
 #print axioms ZFSet.Imp.Cmd.sem_whileDo_step
 #print axioms ZFSet.Imp.Cmd.sem_whileDo_unfold
+#print axioms ZFSet.Imp.Cmd.sem_whileDo_least
 #print axioms ZFSet.Imp.Cmd.not_mem_dom_assign_of_unassigned
 #print axioms ZFSet.Imp.Cmd.assign_incr
 #print axioms ZFSet.loop_pfunc
 #print axioms ZFSet.loop_unfold
+#print axioms ZFSet.loop_least
 
 /-! ## Part 2 — exhaustive audit of every declaration of `ZFLean` and `Imp` -/
 

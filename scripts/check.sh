@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the library and refuse admitted declarations and non-standard axioms.
 #
-#   scripts/check.sh            # from the repository root, after `lake exe cache get`
+#   bash scripts/check.sh       # from the repository root, after `lake exe cache get`
 #
 # 1. `lake build` compiles every module, the examples and the case study included.
 # 2. The build log must not contain `declaration uses 'sorry'` (an admitted proof).
@@ -32,7 +32,7 @@ echo "== size table (Sec. 6.3) =="
 python3 scripts/count_loc.py
 
 echo "== zdom sweep (Sec. 6.2) =="
-scripts/count_sites.sh
+bash scripts/count_sites.sh
 
 echo "check.sh: OK — 0 admitted declarations, standard axioms only, obligation harness verified"
-echo "          (timings: scripts/time_imp.sh reproduces the case-study entry)"
+echo "          (timings: bash scripts/time_components.sh reproduces the size/time table, bash scripts/time_imp.sh the client)"
