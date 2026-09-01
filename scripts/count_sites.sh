@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Count the application sites of the library whose domain-membership obligation is discharged
-# by `zdom` (Table 2 / Sec. 6 of the paper). The population of the measurement is the 74
-# application sites whose domain proof had been written by hand before the tactic existed;
-# the sites that stay manual are listed by `grep -n "rw \[is_func_dom_eq" ZFLean/*.lean`.
+# by `zdom` (Sec. 6.2 of the paper). The population of the measurement is the 74 application
+# sites of the current source: the 73 `by zdom` occurrences counted below plus the one manual
+# site, listed by `grep -n "rw \[is_func_dom_eq" ZFLean/*.lean`.
 cd "$(dirname "$0")/.."
 for f in ZFLean/Functions.lean ZFLean/Recursion.lean ZFLean/Sum.lean ZFLean/Isomorphisms.lean \
          ZFLean/Embeddings.lean ZFLean/Naturals.lean ZFLean/Integers.lean ZFLean/Rationals.lean \
