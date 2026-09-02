@@ -169,7 +169,7 @@ theorem prod_empty_right {x : ZFSet} : x.prod ∅ = ∅ := by
 theorem prod_empty_left {x : ZFSet} : ZFSet.prod ∅ x = ∅ := by
   ext z; simp
 
-notation " ε " => (Classical.epsilon fun z ↦ z ∈ ·)
+scoped notation " ε " => (Classical.epsilon fun z ↦ z ∈ ·)
 
 theorem eq_of_subset_subset {A B : ZFSet} (hAB : A ⊆ B) (hBA : B ⊆ A) : A = B := by
   ext1 x
