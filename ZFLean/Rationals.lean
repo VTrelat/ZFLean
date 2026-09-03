@@ -880,12 +880,51 @@ theorem equivRat_le (a b : ZFRat) : equivRat a ≤ equivRat b ↔ a ≤ b := by
 theorem equivRat_lt (a b : ZFRat) : equivRat a < equivRat b ↔ a < b := by
   rw [lt_iff_not_ge, lt_iff_not_ge, equivRat_le]
 
+theorem equivRat_abs (a : ZFRat) : |equivRat a| = equivRat |a| :=  by
+  rw [abs_eq_max_neg, abs_eq_max_neg]
+  cases max_cases a (-a) with
+  | inl h =>
+    rw [h.left, max_eq_left]
+    rw [←equivRat.map_neg, equivRat_le]
+    exact h.right
+  | inr h =>
+    rw [h.left, max_eq_right, ←equivRat.map_neg]
+    rw [←equivRat.map_neg, equivRat_le]
+    apply le_of_lt
+    exact h.right
+
 /-- Equivalence used by the `transfer` tactic to move goals between `ZFRat` and `ℚ`. -/
 noncomputable instance : TransferEquiv ZFRat ℚ := ⟨equivRat.toEquiv⟩
 
-attribute [transfer_simps ←] equivRat_le equivRat_lt
+attribute [transfer_simps ←] equivRat_le equivRat_lt equivRat_abs
 
 end Transfer
+
+section Analysis
+
+theorem abs_inv (a : ZFRat) : |a⁻¹| = |a|⁻¹ := by
+  rcases lt_trichotomy a 0 with h | rfl | h
+  · rw [abs_of_neg <| inv_neg''.mpr h, abs_of_neg h, inv_neg]
+  · rw [inv_zero, abs_zero, inv_zero]
+  · rw [abs_of_pos <| inv_pos.mpr h, abs_of_pos h]
+
+theorem separation (a : ZFRat) : a = 0 ↔ ∀ e : ZFRat, 0 < e → |a| < e := by
+  constructor
+  · intro rfl e ep
+    rw [abs_zero]
+    exact ep
+  · intro h
+    by_contra
+    rw [←ne_eq, ←abs_pos] at this
+    absurd h (|a|/2) (div_pos this two_pos)
+    rw [not_lt, Field.div_eq_mul_inv]
+    conv => right ; rw [←mul_one |a|]
+    rw [mul_le_mul_iff_of_pos_left this]
+    apply inv_le_of_inv_le₀ one_pos
+    rw [inv_one, ←one_add_one_eq_two, le_add_iff_nonneg_left]
+    exact zero_le_one
+
+end Analysis
 
 end ZFRat
 
