@@ -1693,6 +1693,31 @@ instance : TransferEquiv ZFNat ℕ := ⟨ringEquivNat.toEquiv⟩
 
 @[transfer_simps] theorem ringEquivNat_lt (a b : ZFNat) :
     a < b ↔ ringEquivNat a < ringEquivNat b := toNat_lt a b
+
+@[transfer_simps] theorem ringEquivNat_max (a b : ZFNat) :
+    ringEquivNat (max a b) = max (ringEquivNat a) (ringEquivNat b) := by
+  rw [eq_comm, max_eq_iff]
+  rcases le_or_gt a b with h | h
+  · apply Or.inr
+    rw [max_eq_right h, ← ringEquivNat_le]
+    exact ⟨rfl, h⟩
+  · apply Or.inl
+    apply le_of_lt at h
+    rw [max_eq_left h, ← ringEquivNat_le]
+    exact ⟨rfl, h⟩
+
+@[transfer_simps] theorem ringEquivNat_min (a b : ZFNat) :
+    ringEquivNat (min a b) = min (ringEquivNat a) (ringEquivNat b) := by
+  rw [eq_comm, min_eq_iff]
+  rcases le_or_gt a b with h | h
+  · apply Or.inl
+    rw [min_eq_left h, ← ringEquivNat_le]
+    exact ⟨rfl, h⟩
+  · apply Or.inr
+    apply le_of_lt at h
+    rw [min_eq_right h, ← ringEquivNat_le]
+    exact ⟨rfl, h⟩
+
 end ZFNat
 
 end Transfer
