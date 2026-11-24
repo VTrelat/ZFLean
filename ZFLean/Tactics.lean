@@ -51,34 +51,51 @@ set_option hygiene false
 -- discharged instantly instead of sending `solve_by_elim` on a hopeless search. In the released
 -- 0-sorry artifact it never fires; it only matters while a development is in progress.
 
--- Every search runs under `with_reducible`. The seeds' conclusions are membership and
+-- Every search avoids unfolding definitions. The seeds' conclusions are membership and
 -- well-formedness statements about `sep`, `prod`, `powerset`, `funs`, `lambda`, … ; at default
 -- transparency a *failing* unification of a seed against a goal unfolds these down to the
 -- quotient construction of the model before giving up, and a client that tags a few seeds of
 -- its own (see `casestudy/Imp.lean`) pushes `zdom` over the heartbeat budget through failures
--- alone. At reducible transparency the same searches close the same sites in the library, the
--- mismatches fail on the head symbol, and the case-study module elaborates twice as fast.
+-- alone. Two settings are needed for that:
+-- - `solve_by_elim (transparency := .instances)`: `solve_by_elim` runs each `apply` at its own
+--   `transparency`, `.default` unless given, whatever the surrounding `with_reducible` says.
+--   We use `.instances` rather than `.reducible`, so that `apply` still sees through `⊆` (an
+--   instance), which some sites apply as a function,
+-- - `with_reducible` around each search branch. It governs `solve_by_elim`'s
+--   `intro`/`constructor` fallbacks, and the first branch's lookup of a function-space
+--   hypothesis (`‹_ ∈ ZFSet.funs _ _›`, an `assumption`), which usually finds nothing, and at
+--   default transparency unfolds the same constructions for every hypothesis it compares. It
+--   wraps the searches only: `zdom`'s fallback matches its membership hypothesis at default
+--   transparency, so that a client may state it with its own definitions.
+-- These settings make the searches as fast as sealing Mathlib's set builders in every file
+-- (`attribute [local irreducible] ZFSet.pair ZFSet.prod ZFSet.pairSep …`), which adds nothing
+-- on top of them, and unlike sealing they also apply in client files.
 
 macro "zrel" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
-     with_reducible solve_by_elim using zrel, zpfun, zfun)
-  | with_reducible solve_by_elim using zrel, zpfun, zfun)
+  | with_reducible
+      have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+      solve_by_elim (transparency := .instances) using zrel, zpfun, zfun
+  | with_reducible solve_by_elim (transparency := .instances) using zrel, zpfun, zfun)
 
 set_option hygiene false in
 macro "zpfun" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; with_reducible solve_by_elim using zpfun, zfun)
-  | with_reducible solve_by_elim using zpfun, zfun)
+  | with_reducible
+      have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+      solve_by_elim (transparency := .instances) using zpfun, zfun
+  | with_reducible solve_by_elim (transparency := .instances) using zpfun, zfun)
 
 set_option hygiene false in
 macro "zfun" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›; with_reducible solve_by_elim using zfun)
-  | with_reducible solve_by_elim using zfun)
+  | with_reducible
+      have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+      solve_by_elim (transparency := .instances) using zfun
+  | with_reducible solve_by_elim (transparency := .instances) using zfun)
 
 /-
 `zdom` discharges the membership side conditions that show up at function-application sites:
@@ -103,14 +120,16 @@ set_option hygiene false in
 macro "zdom" : tactic => `(tactic|
   first
   | sorry_if_sorry
-  | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
-     with_reducible solve_by_elim using zdom, zfun, zpfun)
-  | with_reducible solve_by_elim using zdom, zfun, zpfun
+  | with_reducible
+      have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+      solve_by_elim (transparency := .instances) using zdom, zfun, zpfun
+  | with_reducible solve_by_elim (transparency := .instances) using zdom, zfun, zpfun
   | (refine ZFSet.mem_of_mem_dom ?_ (by first | assumption | exact Subtype.property _)
      first
-     | (have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
-        with_reducible solve_by_elim using zpfun, zfun)
-     | with_reducible solve_by_elim using zpfun, zfun)
+     | with_reducible
+         have := ZFSet.mem_funs.mp ‹_ ∈ ZFSet.funs _ _›
+         solve_by_elim (transparency := .instances) using zpfun, zfun
+     | with_reducible solve_by_elim (transparency := .instances) using zpfun, zfun)
   | fail "zdom: no seed closes this membership goal")
 end ZFTactics
 
