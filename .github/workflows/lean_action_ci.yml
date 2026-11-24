@@ -21,4 +21,20 @@ jobs:
       # Refuse admitted declarations and non-standard axioms (see scripts/check.sh).
       - name: Zero-sorry and axiom gate
         run: bash scripts/check.sh
-      - uses: leanprover-community/docgen-action@v1
+      - name: Prepare memory for API documentation
+        if: github.event_name == 'push'
+        run: |
+          # Lean uses fork for source links. Give those processes room to start.
+          swap_file=$(sudo mktemp /mnt/zflean-docgen.XXXXXX)
+          sudo fallocate -l 4G "$swap_file"
+          sudo mkswap "$swap_file"
+          sudo swapon "$swap_file"
+          sudo sysctl -w vm.overcommit_memory=1
+          free -h
+      # This revision supports build-only runs and regenerates HTML after a cache hit.
+      - uses: leanprover-community/docgen-action@dacc1acc2a3f532cc577266979ba9c36c7593f7c
+        with:
+          deploy: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          # A parallel doc-gen4 build can exhaust the hosted runner's memory.
+          LEAN_NUM_THREADS: '1'
