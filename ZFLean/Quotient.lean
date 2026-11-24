@@ -226,6 +226,71 @@ theorem lift_class_of (hrR : R ⊆ E.prod E := by zrel)
   rw [of_in_class, ←mem_class_of_iff_related hrR heR]
   exact Subtype.prop <| choose_repr <| class_of _ _ x
 
+noncomputable def lift₂ (f : E → E → α) (C D : E.ZFQuotient R) : α :=
+  (f (of_in_class (choose_repr C)) (of_in_class (choose_repr D)))
+
+theorem lift₂_class_of (hrR : R ⊆ E.prod E := by zrel)
+  (heR : R.is_rel_equivalence hrR := by assumption) (f : E → E → α)
+  (h : ∀ a b c d, a.val.pair b.val ∈ R → c.val.pair d.val ∈ R → f a c = f b d) (x y : E) :
+    lift₂ f (class_of hrR heR x) (class_of hrR heR y) = f x y := by
+  apply h <;> rw [of_in_class, ←mem_class_of_iff_related hrR heR]
+  · exact Subtype.prop <| choose_repr <| class_of _ _ x
+  · exact Subtype.prop <| choose_repr <| class_of _ _ y
+
+noncomputable def map (hrR : R ⊆ E.prod E := by zrel)
+  (heR : R.is_rel_equivalence hrR := by assumption) (f : E → E)
+  (h : ∀ a b, a.val.pair b.val ∈ R → (f a).val.pair (f b).val ∈ R) :
+    E.ZFQuotient R → E.ZFQuotient R :=
+  fun C => ⟨lift (fun r => class_of hrR heR (f r)) C, by
+    have r := choose_repr C
+    rw [←class_of_mem_eq_self hrR heR C r, lift_class_of]
+    · exact (class_of hrR heR (f (of_in_class r))).prop
+    · intro a b related
+      rw [←Subtype.ext_iff, class_eq_iff_related]
+      exact h a b related
+  ⟩
+
+theorem map_class_of (hrR : R ⊆ E.prod E := by zrel)
+(heR : R.is_rel_equivalence hrR := by assumption) (f : E → E)
+(h : ∀ a b, a.val.pair b.val ∈ R → (f a).val.pair (f b).val ∈ R) (x : E) :
+    map hrR heR f h (class_of hrR heR x) = class_of hrR heR (f x) := by
+  unfold map
+  conv =>
+    enter [1,1]
+    rw [lift_class_of hrR heR] ; · skip
+    tactic =>
+      intro a b related
+      rw [←Subtype.ext_iff, class_eq_iff_related]
+      exact h a b related
+
+noncomputable def map₂ (hrR : R ⊆ E.prod E := by zrel)
+  (heR : R.is_rel_equivalence hrR := by assumption) (f : E → E → E)
+  (h : ∀ a b c d, a.val.pair b.val ∈ R → c.val.pair d.val ∈ R → (f a c).val.pair (f b d) ∈ R) :
+    E.ZFQuotient R → E.ZFQuotient R → E.ZFQuotient R :=
+  fun C D => ⟨lift₂ (fun r s => class_of hrR heR (f r s)) C D, by
+    have r := choose_repr C
+    have s := choose_repr D
+    rw [←class_of_mem_eq_self hrR heR C r, ←class_of_mem_eq_self hrR heR D s, lift₂_class_of]
+    · exact (class_of hrR heR (f (of_in_class r) (of_in_class s))).prop
+    · intro a b c d ab_related cd_related
+      rw [←Subtype.ext_iff, class_eq_iff_related]
+      exact h a b c d ab_related cd_related
+  ⟩
+
+theorem map₂_class_of (hrR : R ⊆ E.prod E := by zrel)
+  (heR : R.is_rel_equivalence hrR := by assumption) (f : E → E → E)
+  (h : ∀ a b c d, a.val.pair b.val ∈ R → c.val.pair d.val ∈ R → (f a c).val.pair (f b d) ∈ R)
+  (x y : E) :
+    map₂ hrR heR f h (class_of hrR heR x) (class_of hrR heR y) = class_of hrR heR (f x y) := by
+  unfold map₂
+  conv =>
+    enter [1,1]
+    rw [lift₂_class_of hrR heR] ; · skip
+    tactic =>
+      intro a b c d ab_related cd_related
+      rw [←Subtype.ext_iff, class_eq_iff_related]
+      exact h a b c d ab_related cd_related
+
 @[expose]
 def toSetoid {E R : ZFSet}
     (hrR : R ⊆ E.prod E := by zrel)

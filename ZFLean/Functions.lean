@@ -1248,15 +1248,21 @@ theorem mem_funs_of_lambda {A B : ZFSet} {f : ZFSet → ZFSet} (hf : ∀ {x}, x 
 attribute [zfun] lambda_isFunc
 attribute [zrel] lambda_subset
 
-theorem fapply_lambda {A B : ZFSet} {f : ZFSet → ZFSet}
+theorem fapply_lambda' {A B : ZFSet} {f : ZFSet → ZFSet}
   (hf : ∀ {x}, x ∈ A → f x ∈ B) {a : ZFSet} (ha : a ∈ A) :
     fapply (λᶻ : A → B | x ↦ f x) (is_func_is_pfunc <| lambda_isFunc hf)
-      ⟨a, by zdom⟩ = f a := by
+      ⟨a, by zdom⟩ = ⟨f a, hf ha⟩ := by
   rw [fapply]
   generalize_proofs choose_y y_mem_B
   have y_def := Classical.choose_spec choose_y |>.2
   rw [lambda_spec] at y_def
+  apply Subtype.ext
   exact y_def.2.2
+
+theorem fapply_lambda {A B : ZFSet} {f : ZFSet → ZFSet}
+  (hf : ∀ {x}, x ∈ A → f x ∈ B) {a : ZFSet} (ha : a ∈ A) :
+    fapply (λᶻ : A → B | x ↦ f x) (is_func_is_pfunc <| lambda_isFunc hf)
+      ⟨a, by zdom⟩ = f a := Subtype.ext_iff.mp <| fapply_lambda' hf ha
 
 /--
 The inverse of an injection is a function.
